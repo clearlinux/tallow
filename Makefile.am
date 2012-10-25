@@ -1,0 +1,9 @@
+
+EXTRA_DIST = AUTHORS COPYING INSTALL
+
+AM_CFLAGS = $(LIBSYSTEMD_JOURNAL_CFLAGS) -Wall -Wno-uninitialized
+
+sbin_PROGRAMS = tallow
+tallow_SOURCES = tallow.c
+tallow_LDADD = $(LIBSYSTEMD_JOURNAL_LIBS)
+

@@ -6,12 +6,14 @@ AC_INIT([tallow], [0], [auke-jan.h.kok@intel.com])
 AM_INIT_AUTOMAKE([])
 AC_CONFIG_FILES([Makefile])
 
-# Systemd is required, obviously
-PKG_CHECK_MODULES([SYSTEMD], [systemd])
-PKG_CHECK_MODULES([SD_JOURNAL], [libsystemd-journal])
+# Checks for programs.
+AC_PROG_CC
+AC_PROG_INSTALL
 
-SYSTEMDSYSTEMUNITDIR="`$PKG_CONFIG --variable=systemdsystemunitdir systemd`"
-AC_SUBST(SYSTEMDSYSTEMUNITDIR)
+PKG_CHECK_MODULES([SYSTEMD], [systemd])
+PKG_CHECK_MODULES([LIBSYSTEMD_JOURNAL], [libsystemd-journal])
+AC_SUBST(LIBSYSTEMD_JOURNAL_CFLAGS)
+AC_SUBST(LIBSYSTEMD_JOURNAL_LIBS)
 
 AC_OUTPUT([
 ])
