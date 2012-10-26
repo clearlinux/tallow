@@ -1,4 +1,5 @@
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -14,7 +15,7 @@ int main(int argc, char *argv[])
 	r = sd_journal_open(&j, SD_JOURNAL_LOCAL_ONLY);
 	if (r < 0) {
 		fprintf(stderr, "Failed to open journal: %s\n", strerror(-r));
-		return 1;
+		exit(1);
 	}
 
 	sd_journal_add_match(j, FILTER_STRING, 0);
@@ -25,14 +26,30 @@ int main(int argc, char *argv[])
 		size_t l;
 
 		while (sd_journal_next(j) != 0) {
+			char *m;
+
 			if (sd_journal_get_data(j, "MESSAGE", &d, &l) < 0) {
 				fprintf(stderr, "Failed to read message field: %s\n", strerror(-r));
 				continue;
 			}
 
 			/* read and parse messages */
-			fprintf(stderr, "%.*s\n", (int) l, d);
+			fprintf(stderr, "%.*s\n", (int) l, (const char*) d);
+
+			m = strndup((const char*) d, l + 1);
+			if (strstr(m, "Failed password for invalid user")) {
+				char *s;
+				char *c;
+
+				c = m + strlen("Failed password for invalid user") + 1;
+				s = strchr(c, ' ');
+				s = '\0';
+
+				fprintf(stderr, "%s\n", c);
+
+			}
 		}
 	}
 
+	exit(0);
 }
