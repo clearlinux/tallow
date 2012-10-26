@@ -17,9 +17,10 @@ struct tallow_struct {
 static struct tallow_struct *head;
 
 #define FILTER_STRING "SYSLOG_IDENTIFIER=sshd"
-#define TALLOW_CHAIN "TALLOW"
 #define PATH_IPTABLES "/usr/sbin"
+#define TALLOW_CHAIN "TALLOW"
 #define TALLOW_THRESHOLD 3
+#define TALLOW_TIMEOUT 3600
 
 const char *whitelist[32] = {
 	"192.168.1.1",
@@ -43,7 +44,12 @@ static void block(struct tallow_struct *s)
 {
 	if (s->count != TALLOW_THRESHOLD)
 		return;
-	(void) ext("/usr/bin/echo %s/iptables -t filter -A %s -s %s -j DROP", PATH_IPTABLES, TALLOW_CHAIN, s->ip);
+	(void) ext("%s/iptables -t filter -A %s -s %s -j DROP", PATH_IPTABLES, TALLOW_CHAIN, s->ip);
+}
+
+static void unblock(char *ip)
+{
+	(void) ext("%s/iptables -t filter -D %s -s %s -j DROP", PATH_IPTABLES, TALLOW_CHAIN, ip);
 }
 
 static void find(char *ip)
@@ -85,12 +91,46 @@ static void find(char *ip)
 	else
 		s->next = n;
 
-	n->ip = ip;
+	n->ip = strdup(ip);
 	n->count = 1;
+	n->next = NULL;
 	(void) gettimeofday(&n->time, NULL);
 
 	block(n);
 	return;
+}
+
+static void prune(void)
+{
+	struct tallow_struct *s = head;
+	struct tallow_struct *p;
+	struct timeval tv;
+
+	(void) gettimeofday(&tv, NULL);
+	p = NULL;
+
+	while (s) {
+		if ((tv.tv_sec - s->time.tv_sec) > TALLOW_TIMEOUT) {
+			if (p) {
+				unblock(s->ip);
+				p->next = s->next;
+				free(s->ip);
+				free(s);
+				s = p->next;
+				continue;
+			} else {
+				unblock(s->ip);
+				head = s->next;
+				free(s->ip);
+				free(s);
+				s = head;
+				p = NULL;
+				continue;
+			}
+		}
+		p = s;
+		s = s->next;
+	}
 }
 
 int main(int argc, char *argv[])
@@ -113,7 +153,7 @@ int main(int argc, char *argv[])
 
 	/* ffwd journal */
 	sd_journal_add_match(j, FILTER_STRING, 0);
-//	sd_journal_seek_tail(j);
+	sd_journal_seek_tail(j);
 
 	while (sd_journal_wait(j, (uint64_t) -1)) {
 		const void *d;
@@ -146,6 +186,8 @@ int main(int argc, char *argv[])
 				find(t);
 			}
 		}
+
+		prune();
 	}
 
 	exit(0);
