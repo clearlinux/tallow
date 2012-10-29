@@ -25,6 +25,7 @@ static struct tallow_struct *head;
 const char *whitelist[32] = {
 	"192.168.1.1",
 	"192.168.1.10",
+	"127.0.0.1",
 	NULL
 };
 
@@ -36,6 +37,8 @@ static int ext(char *fmt, ...)
 	va_start(args, fmt);
 	vsnprintf(cmd, sizeof(cmd), fmt, args);
 	va_end(args);
+
+	fprintf(stderr, "Executing: \"%s\"\n", cmd);
 
 	return (system(cmd));
 }
@@ -179,7 +182,7 @@ int main(int argc, char *argv[])
 				find(t);
 			}
 
-			if (strstr(m, "MESSAGE=Failed password for root  ")) {
+			if (strstr(m, "MESSAGE=Failed password for root ")) {
 				t = strtok(m, " ");
 				for (i = 0; i < 5; i++)
 					t = strtok(NULL, " ");

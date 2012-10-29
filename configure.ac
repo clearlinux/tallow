@@ -15,5 +15,15 @@ PKG_CHECK_MODULES([LIBSYSTEMD_JOURNAL], [libsystemd-journal])
 AC_SUBST(LIBSYSTEMD_JOURNAL_CFLAGS)
 AC_SUBST(LIBSYSTEMD_JOURNAL_LIBS)
 
+AC_ARG_WITH([systemdsystemunitdir], AC_HELP_STRING([--with-systemdsystemunitdir=DIR],
+	[path to systemd system service directory]), [path_systemdsystemunit=${withval}],
+	[path_systemdsystemunit="`$PKG_CONFIG --variable=systemdsystemunitdir systemd`"])
+if (test -n "${path_systemdsystemunit}"); then
+SYSTEMD_SYSTEMUNITDIR="${path_systemdsystemunit}"
+AC_SUBST(SYSTEMD_SYSTEMUNITDIR)
+AM_CONDITIONAL(SYSTEMD, test -n "${path_systemdsystemunit}")
+fi
+
 AC_OUTPUT([
+tallow.service
 ])
