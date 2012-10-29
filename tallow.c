@@ -3,7 +3,7 @@
  *
  * (C) Copyright 2012 Intel Corporation
  * Authors:
- *     Auke Kok <auke@linux.intel.com>
+ *     Auke Kok <auke-jan.h.kok@intel.com>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#include <limits.h>
 #include <sys/time.h>
 
 #include <systemd/sd-journal.h>
@@ -28,18 +29,14 @@ struct tallow_struct {
 
 static struct tallow_struct *head;
 
-#define FILTER_STRING "SYSLOG_IDENTIFIER=sshd"
-#define PATH_IPTABLES "/usr/sbin"
-#define TALLOW_CHAIN "TALLOW"
-#define TALLOW_THRESHOLD 3
-#define TALLOW_TIMEOUT 3600
+static struct tallow_struct *whitelist;
 
-const char *whitelist[32] = {
-	"192.168.1.1",
-	"192.168.1.10",
-	"127.0.0.1",
-	NULL
-};
+#define FILTER_STRING "SYSLOG_IDENTIFIER=sshd"
+
+static char iptables_path[PATH_MAX] = "/usr/sbin";
+static char chain[PATH_MAX] = "TALLOW";
+static int threshold = 3;
+static int expires = 3600;
 
 static int ext(char *fmt, ...)
 {
@@ -57,26 +54,50 @@ static int ext(char *fmt, ...)
 
 static void block(struct tallow_struct *s)
 {
-	if (s->count != TALLOW_THRESHOLD)
+	if (s->count != expires)
 		return;
-	(void) ext("%s/iptables -t filter -A %s -s %s -j DROP", PATH_IPTABLES, TALLOW_CHAIN, s->ip);
+	(void) ext("%s/iptables -t filter -A %s -s %s -j DROP", iptables_path, expires, s->ip);
 }
 
 static void unblock(char *ip)
 {
-	(void) ext("%s/iptables -t filter -D %s -s %s -j DROP", PATH_IPTABLES, TALLOW_CHAIN, ip);
+	(void) ext("%s/iptables -t filter -D %s -s %s -j DROP", iptables_path, expires, ip);
+}
+
+static void whitelist_add(char *ip)
+{
+	struct tallow_struct *w = whitelist;
+	struct tallow_struct *n;
+
+	while (w && w->next)
+		w = w->next;
+
+	n = malloc(sizeof(struct tallow_struct));
+	if (!n) {
+		fprintf(stderr, "Out of memory.\n");
+		exit(1);
+	}
+	n->ip = strdup(ip);
+	n->next = NULL;
+
+	if (!whitelist)
+		whitelist = n;
+	else
+		w->next = n;
 }
 
 static void find(char *ip)
 {
 	struct tallow_struct *s = head;
 	struct tallow_struct *n;
-	int i;
+	struct tallow_struct *w = whitelist;
 
 	/* whitelist */
-	for (i = 0; whitelist[i]; i++)
-		if (!strcmp(whitelist[i], ip))
+	while (w) {
+		if (!strcmp(w->ip, ip))
 			return;
+		w = w->next;
+	}
 
 	/* walk and update entry */
 	while (s) {
@@ -125,7 +146,7 @@ static void prune(void)
 	p = NULL;
 
 	while (s) {
-		if ((tv.tv_sec - s->time.tv_sec) > TALLOW_TIMEOUT) {
+		if ((tv.tv_sec - s->time.tv_sec) > expires) {
 			if (p) {
 				unblock(s->ip);
 				p->next = s->next;
@@ -152,6 +173,48 @@ int main(int argc, char *argv[])
 {
 	int r;
 	sd_journal *j;
+	FILE *f;
+
+	f = fopen("/etc/tallow.conf", "r");
+	if (f) {
+		char buf[256];
+		char *key;
+		char *val;
+
+		while (fgets(buf, 80, f) != NULL) {
+			char *c;
+
+			c = strchr(buf, '\n');
+			if (c) *c = 0; /* remove trailing \n */
+
+			if (buf[0] == '#')
+				continue; /* comment line */
+
+			key = strtok(buf, "=");
+			if (!key)
+				continue;
+			val = strtok(NULL, "=");
+			if (!val)
+				continue;
+
+			// todo: filter leading/trailing whitespace
+
+			if (!strcmp(key, "iptables_path"))
+				strncpy(iptables_path, val, PATH_MAX - 1);
+			if (!strcmp(key, "chain"))
+				strncpy(chain, val, PATH_MAX - 1);
+			if (!strcmp(key, "threshold"))
+				threshold = atoi(val);
+			if (!strcmp(key, "expires"))
+				expires = atoi(val);
+			if (!strcmp(key, "whitelist"))
+				whitelist_add(val);
+		}
+		fclose(f);
+	}
+
+	if (!whitelist)
+		whitelist_add("127.0.0.1");
 
 	r = sd_journal_open(&j, SD_JOURNAL_LOCAL_ONLY);
 	if (r < 0) {
@@ -160,9 +223,9 @@ int main(int argc, char *argv[])
 	}
 
 	/* init iptables chain */
-	(void) ext("%s/iptables -t filter -N %s > /dev/null 2>&1", PATH_IPTABLES, TALLOW_CHAIN);
-	if (ext("%s/iptables -t filter -F %s", PATH_IPTABLES, TALLOW_CHAIN)) {
-		fprintf(stderr, "Unable to create/flush iptables chain \"%s\".\n", TALLOW_CHAIN);
+	(void) ext("%s/iptables -t filter -N %s > /dev/null 2>&1", iptables_path, chain);
+	if (ext("%s/iptables -t filter -F %s", iptables_path, chain)) {
+		fprintf(stderr, "Unable to create/flush iptables chain \"%s\".\n", chain);
 		exit(1);
 	}
 
