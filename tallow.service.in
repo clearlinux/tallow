@@ -1,0 +1,12 @@
+
+[Unit]
+Description=Tallow Service
+
+[Service]
+ExecStart=@prefix@/sbin/tallow
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=network.target
+
