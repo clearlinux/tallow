@@ -24,6 +24,8 @@ AC_SUBST(SYSTEMD_SYSTEMUNITDIR)
 AM_CONDITIONAL(SYSTEMD, test -n "${path_systemdsystemunit}")
 fi
 
+AC_CHECK_HEADERS([stdlib.h stdio.h string.h stdarg.h limits.h sys/time.h])
+
 AC_OUTPUT([
 tallow.service
 ])
