@@ -1,0 +1,39 @@
+.TH tallow.conf 5 "31 October 2012" ".5" "The tallow configuration file"
+.SH NAME
+tallow.conf \- Tallow daemon configuration file
+.SH SYNOPSIS
+/etc/tallow.conf
+.SH DESCRIPTION
+This file is read on startup by the tallow(1) daemon, and can
+be used to provide options to the tallow daemon. If not present,
+tallow will operate with built-in defaults.
+.SH OPTIONS
+.TP
+\fBiptables_path\fR=\<string\>
+Specifies the location of the iptables(1) program. By default,
+tallow will look in "/usr/sbin" for iptables(1).
+.TP
+\fBchain\fR=\<string\>
+Specifies the iptables(1) chain name to use for maintaining the
+block list. By default, tallow maintains its iptables(1) rules
+in the \fBTALLOW\fR chain.
+.TP
+\fBexpires\fR=\<int\>
+The number of seconds that IP addresses are blocked for. Note that
+due to the implementation, IP addresses may be blocked for much
+longer than this period. If IP addresses are seen, but not
+blocked within this period, they are also removed from the
+watch list. Defaults to 3600s.
+.TP
+\fBthreshold\fR=\<int\>
+Specifies the number of times an IP address may appear before it
+is blocked. Defaults to 3.
+.TP
+\fBwhitelist\fR=\<ipv4 address\>
+Specify an IP address that should never be blocked. Multiple IP
+addresses can be included by repeating the \fBwhitelist\fR
+option several times. By default, only 127.0.0.1 is whitelisted.
+.SH SEE ALSO
+tallow(1), iptables(1)
+.SH AUTHOR
+Auke Kok <auke-jan.h.kok@intel.com>
