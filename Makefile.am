@@ -10,7 +10,4 @@ sbin_PROGRAMS = tallow
 tallow_SOURCES = tallow.c
 tallow_LDADD = $(LIBSYSTEMD_JOURNAL_LIBS)
 
-
-
-
-
+dist_man_MANS = tallow.1 tallow.conf.5
