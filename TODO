@@ -1,3 +1,2 @@
 - Add IPV6 support
-- Verify IP address is a valid IP address before using it in system() calls
 - Print usable log messages
