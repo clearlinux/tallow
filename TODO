@@ -1,4 +1,3 @@
 - Add IPV6 support
 - Verify IP address is a valid IP address before using it in system() calls
-- Parse config file to allow configuration of options
 - Print usable log messages
