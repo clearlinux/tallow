@@ -59,9 +59,10 @@ static void block(struct tallow_struct *s)
 	(void) ext("%s/iptables -t filter -A %s -s %s -j DROP", iptables_path, expires, s->ip);
 }
 
-static void unblock(char *ip)
+static void unblock(struct tallow_struct *s)
 {
-	(void) ext("%s/iptables -t filter -D %s -s %s -j DROP", iptables_path, expires, ip);
+	if (s->count >= expires)
+		(void) ext("%s/iptables -t filter -D %s -s %s -j DROP", iptables_path, expires, s->ip);
 }
 
 static void whitelist_add(char *ip)
@@ -97,8 +98,8 @@ static void find(char *ip)
 	 * making sure we're not passing special characters
 	 * to system().
 	 */
-	if (strspn(ip, "0123456789.") < l)
-		continue;
+	if (strspn(ip, "0123456789.") < strlen(ip))
+		return;
 
 	/* whitelist */
 	while (w) {
@@ -156,14 +157,14 @@ static void prune(void)
 	while (s) {
 		if ((tv.tv_sec - s->time.tv_sec) > expires) {
 			if (p) {
-				unblock(s->ip);
+				unblock(s);
 				p->next = s->next;
 				free(s->ip);
 				free(s);
 				s = p->next;
 				continue;
 			} else {
-				unblock(s->ip);
+				unblock(s);
 				head = s->next;
 				free(s->ip);
 				free(s);
