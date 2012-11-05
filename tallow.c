@@ -47,8 +47,6 @@ static int ext(char *fmt, ...)
 	vsnprintf(cmd, sizeof(cmd), fmt, args);
 	va_end(args);
 
-	fprintf(stderr, "Executing: \"%s\"\n", cmd);
-
 	return (system(cmd));
 }
 
@@ -56,13 +54,18 @@ static void block(struct tallow_struct *s)
 {
 	if (s->count != threshold)
 		return;
+
 	(void) ext("%s/iptables -t filter -A %s -s %s -j DROP", iptables_path, chain, s->ip);
+	fprintf(stdout, "Blocked %s\n", s->ip);
 }
 
 static void unblock(struct tallow_struct *s)
 {
-	if (s->count >= threshold)
-		(void) ext("%s/iptables -t filter -D %s -s %s -j DROP", iptables_path, chain, s->ip);
+	if (s->count < threshold)
+		return;
+
+	(void) ext("%s/iptables -t filter -D %s -s %s -j DROP", iptables_path, chain, s->ip);
+	fprintf(stdout, "Unblocked %s\n", s->ip);
 }
 
 static void whitelist_add(char *ip)
@@ -241,6 +244,8 @@ int main(int argc, char *argv[])
 	/* ffwd journal */
 	sd_journal_add_match(j, FILTER_STRING, 0);
 	sd_journal_seek_tail(j);
+
+	fprintf(stdout, "Started\n");
 
 	while (sd_journal_wait(j, (uint64_t) -1)) {
 		const void *d;
