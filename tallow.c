@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#include <signal.h>
 #include <limits.h>
 #include <sys/time.h>
 
@@ -37,6 +38,7 @@ static char iptables_path[PATH_MAX] = "/usr/sbin";
 static char chain[PATH_MAX] = "TALLOW";
 static int threshold = 3;
 static int expires = 3600;
+static sd_journal *j;
 
 static int ext(char *fmt, ...)
 {
@@ -148,6 +150,26 @@ static void find(char *ip)
 	return;
 }
 
+static void dump(void)
+{
+	struct tallow_struct *s = head;
+
+	while (s) {
+		fprintf(stderr, "%s: %d, %lu.%lu\n", s->ip, s->count, s->time.tv_sec, s->time.tv_usec);
+		s = s->next;
+	}
+}
+
+static void sig(int s)
+{
+	if (s == SIGUSR1) {
+		dump();
+	} else {
+		sd_journal_close(j);
+		exit(0);
+	}
+}
+
 static void prune(void)
 {
 	struct tallow_struct *s = head;
@@ -184,8 +206,15 @@ static void prune(void)
 int main(int argc, char *argv[])
 {
 	int r;
-	sd_journal *j;
 	FILE *f;
+	struct sigaction s;
+
+	memset(&s, 0, sizeof(struct sigaction));
+	s.sa_handler = sig;
+	sigaction(SIGUSR1, &s, NULL);
+	sigaction(SIGHUP, &s, NULL);
+	sigaction(SIGTERM, &s, NULL);
+	sigaction(SIGINT, &s, NULL);
 
 	f = fopen("/etc/tallow.conf", "r");
 	if (f) {
@@ -244,6 +273,7 @@ int main(int argc, char *argv[])
 	/* ffwd journal */
 	sd_journal_add_match(j, FILTER_STRING, 0);
 	sd_journal_seek_tail(j);
+	sd_journal_previous(j);
 
 	fprintf(stdout, "Started\n");
 
