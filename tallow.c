@@ -291,6 +291,9 @@ int main(int argc, char *argv[])
 		fclose(f);
 	}
 
+	if (!has_ipv6)
+		fprintf(stdout, "ipv6 support disabled.\n");
+
 	if (!whitelist)
 		whitelist_add("127.0.0.1");
 
