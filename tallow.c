@@ -1,7 +1,7 @@
 /*
  * tallow.c - IP block sshd login abuse
  *
- * (C) Copyright 2012 Intel Corporation
+ * (C) Copyright 2015 Intel Corporation
  * Authors:
  *     Auke Kok <auke-jan.h.kok@intel.com>
  *
@@ -16,6 +16,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <signal.h>
+#include <unistd.h>
 #include <limits.h>
 #include <sys/time.h>
 
@@ -38,6 +39,7 @@ static char iptables_path[PATH_MAX] = "/usr/sbin";
 static char chain[PATH_MAX] = "TALLOW";
 static int threshold = 3;
 static int expires = 3600;
+static int has_ipv6 = 0;
 static sd_journal *j;
 
 static int ext(char *fmt, ...)
@@ -56,12 +58,30 @@ static int ext(char *fmt, ...)
 	return (ret);
 }
 
+static void ext_ignore(char *fmt, ...)
+{
+	va_list args;
+	char cmd[1024];
+
+	va_start(args, fmt);
+	vsnprintf(cmd, sizeof(cmd), fmt, args);
+	va_end(args);
+
+	(void) system(cmd);
+}
+
 static void block(struct tallow_struct *s)
 {
 	if (s->count != threshold)
 		return;
 
-	(void) ext("%s/iptables -t filter -A %s -s %s -j DROP", iptables_path, chain, s->ip);
+	if (strchr(s->ip, ':')) {
+		if (has_ipv6)
+			(void) ext("%s/ip6tables -t filter -A %s -s %s -j DROP", iptables_path, chain, s->ip);
+	} else {
+		(void) ext("%s/iptables -t filter -A %s -s %s -j DROP", iptables_path, chain, s->ip);
+	}
+
 	fprintf(stdout, "Blocked %s\n", s->ip);
 }
 
@@ -70,7 +90,13 @@ static void unblock(struct tallow_struct *s)
 	if (s->count < threshold)
 		return;
 
-	(void) ext("%s/iptables -t filter -D %s -s %s -j DROP", iptables_path, chain, s->ip);
+	if (strchr(s->ip, ':')) {
+		if (has_ipv6)
+			(void) ext("%s/ip6tables -t filter -D %s -s %s -j DROP", iptables_path, chain, s->ip);
+	} else {
+		(void) ext("%s/iptables -t filter -D %s -s %s -j DROP", iptables_path, chain, s->ip);
+	}
+
 	fprintf(stdout, "Unblocked %s\n", s->ip);
 }
 
@@ -108,7 +134,7 @@ static void find(char *ip)
 	 * making sure we're not passing special characters
 	 * to system().
 	 */
-	if (strspn(ip, "0123456789.") != strlen(ip))
+	if (strspn(ip, "0123456789abcdef:.") != strlen(ip))
 		return;
 
 	/* whitelist */
@@ -222,6 +248,9 @@ int main(int argc, char *argv[])
 	sigaction(SIGTERM, &s, NULL);
 	sigaction(SIGINT, &s, NULL);
 
+	if (access("/proc/sys/net/ipv6", R_OK | X_OK) == 0)
+		has_ipv6 = 1;
+
 	f = fopen("/etc/tallow.conf", "r");
 	if (f) {
 		char buf[256];
@@ -256,6 +285,8 @@ int main(int argc, char *argv[])
 				expires = atoi(val);
 			if (!strcmp(key, "whitelist"))
 				whitelist_add(val);
+			if (!strcmp(key, "ipv6"))
+				has_ipv6 = atoi(val);
 		}
 		fclose(f);
 	}
@@ -269,11 +300,19 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	/* init iptables chain */
-	(void) ext("%s/iptables -t filter -N %s > /dev/null 2>&1", iptables_path, chain);
+	/* init ip(6)tables chains */
+	ext_ignore("%s/iptables -t filter -N %s > /dev/null 2>&1", iptables_path, chain);
 	if (ext("%s/iptables -t filter -F %s", iptables_path, chain)) {
 		fprintf(stderr, "Unable to create/flush iptables chain \"%s\".\n", chain);
 		exit(1);
+	}
+
+	if (has_ipv6) {
+		ext_ignore("%s/ip6tables -t filter -N %s > /dev/null 2>&1", iptables_path, chain);
+		if (ext("%s/ip6tables -t filter -F %s", iptables_path, chain)) {
+			fprintf(stderr, "Unable to create/flush ip6tables chain \"%s\".\n", chain);
+			exit(1);
+		}
 	}
 
 	/* ffwd journal */
