@@ -44,12 +44,16 @@ static int ext(char *fmt, ...)
 {
 	va_list args;
 	char cmd[1024];
+	int ret = 0;
 
 	va_start(args, fmt);
 	vsnprintf(cmd, sizeof(cmd), fmt, args);
 	va_end(args);
 
-	return (system(cmd));
+	ret = system(cmd);
+	if (ret)
+		fprintf(stderr, "Error executing \"%s\": returned %d\n", cmd, ret);
+	return (ret);
 }
 
 static void block(struct tallow_struct *s)
@@ -83,6 +87,7 @@ static void whitelist_add(char *ip)
 		fprintf(stderr, "Out of memory.\n");
 		exit(1);
 	}
+	memset(n, 0, sizeof(struct tallow_struct));
 	n->ip = strdup(ip);
 	n->next = NULL;
 
@@ -135,6 +140,7 @@ static void find(char *ip)
 		fprintf(stderr, "Out of memory.\n");
 		exit(1);
 	}
+	memset(n, 0, sizeof(struct tallow_struct));
 
 	if (!head)
 		head = n;
@@ -273,7 +279,9 @@ int main(int argc, char *argv[])
 	/* ffwd journal */
 	sd_journal_add_match(j, FILTER_STRING, 0);
 	sd_journal_seek_tail(j);
-	sd_journal_previous(j);
+	r = sd_journal_previous(j);
+	if (r != 1)
+		fprintf(stderr, "sd_journal_previous() returned %d\n", r);
 
 	fprintf(stdout, "Started\n");
 
@@ -307,10 +315,14 @@ int main(int argc, char *argv[])
 					t = strtok(NULL, " ");
 				find(t);
 			}
+
+			free(m);
 		}
 
 		prune();
 	}
+
+	sd_journal_close(j);
 
 	exit(0);
 }
