@@ -82,7 +82,7 @@ static void block(struct tallow_struct *s)
 		(void) ext("%s/iptables -t filter -A %s -s %s -j DROP", iptables_path, chain, s->ip);
 	}
 
-	fprintf(stdout, "Blocked %s\n", s->ip);
+	fprintf(stderr, "Blocked %s\n", s->ip);
 }
 
 static void unblock(struct tallow_struct *s)
@@ -97,7 +97,7 @@ static void unblock(struct tallow_struct *s)
 		(void) ext("%s/iptables -t filter -D %s -s %s -j DROP", iptables_path, chain, s->ip);
 	}
 
-	fprintf(stdout, "Unblocked %s\n", s->ip);
+	fprintf(stderr, "Unblocked %s\n", s->ip);
 }
 
 static void whitelist_add(char *ip)
@@ -185,6 +185,7 @@ static void find(char *ip)
 static void dump(void)
 {
 	struct tallow_struct *s = head;
+	fprintf(stderr, "Received SIGUSR1 - dumping address table: address: count, time\n");
 
 	while (s) {
 		fprintf(stderr, "%s: %d, %lu.%lu\n", s->ip, s->count, s->time.tv_sec, s->time.tv_usec);
@@ -197,6 +198,7 @@ static void sig(int s)
 	if (s == SIGUSR1) {
 		dump();
 	} else {
+		fprintf(stderr, "Exiting on request.\n");
 		sd_journal_close(j);
 
 		struct tallow_struct *s = head;
@@ -208,7 +210,6 @@ static void sig(int s)
 			s = s->next;
 			free(n);
 		}
-
 		exit(0);
 	}
 }
@@ -251,6 +252,7 @@ int main(int argc, char *argv[])
 	int r;
 	FILE *f;
 	struct sigaction s;
+	int timeout = 60;
 
 	memset(&s, 0, sizeof(struct sigaction));
 	s.sa_handler = sig;
@@ -331,16 +333,24 @@ int main(int argc, char *argv[])
 
 	/* ffwd journal */
 	sd_journal_add_match(j, FILTER_STRING, 0);
-	sd_journal_seek_tail(j);
-	r = sd_journal_previous(j);
-	if (r != 1)
-		fprintf(stderr, "sd_journal_previous() returned %d\n", r);
+	r = sd_journal_seek_tail(j);
+	sd_journal_wait(j, (uint64_t) 0);
+	fprintf(stderr, "sd_journal_seek_tail() returned %d\n", r);
+	while (sd_journal_next(j) != 0)
+		r++;
+	fprintf(stderr, "Forwarded through %d items in the journal to reach the end\n", r);
 
-	fprintf(stdout, "Started\n");
+	fprintf(stderr, "Started\n");
 
-	while (sd_journal_wait(j, (uint64_t) -1)) {
+	for (;;) {
 		const void *d;
 		size_t l;
+
+		r = sd_journal_wait(j, (uint64_t) timeout);
+		if (r == SD_JOURNAL_INVALIDATE) {
+			fprintf(stderr, "Journal was rotated, resetting\n");
+			sd_journal_seek_tail(j);
+		}
 
 		while (sd_journal_next(j) != 0) {
 			char *t;
