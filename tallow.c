@@ -198,6 +198,17 @@ static void sig(int s)
 		dump();
 	} else {
 		sd_journal_close(j);
+
+		struct tallow_struct *s = head;
+		while (s) {
+			struct tallow_struct *n = NULL;
+
+			free(s->ip);
+			n = s;
+			s = s->next;
+			free(n);
+		}
+
 		exit(0);
 	}
 }
