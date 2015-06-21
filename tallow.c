@@ -346,7 +346,7 @@ int main(int argc, char *argv[])
 		const void *d;
 		size_t l;
 
-		r = sd_journal_wait(j, (uint64_t) timeout);
+		r = sd_journal_wait(j, (uint64_t) timeout * 1000000);
 		if (r == SD_JOURNAL_INVALIDATE) {
 			fprintf(stderr, "Journal was rotated, resetting\n");
 			sd_journal_seek_tail(j);
