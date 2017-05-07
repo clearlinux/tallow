@@ -284,20 +284,20 @@ int main(void)
 	}
 
 	/* init ipsets */
-	ext_ignore("%s/ipset create tallow hash:ip timeout %d", expires);
+	ext_ignore("%s/ipset create tallow hash:ip timeout %d", ipt_path, expires);
 	if (has_ipv6)
-		ext_ignore("%s/ipset create tallow6 hash:ip timeout %d", expires);
+		ext_ignore("%s/ipset create tallow6 hash:ip timeout %d", ipt_path, expires);
 
 	/* init ip(6)tables chains */
 	ext_ignore("%s/iptables -t filter -D INPUT -m set --match-set tallow src -j DROP", ipt_path);
-	if (ext("%s/iptables -t filter -D INPUT -m set --match-set tallow src -j DROP", ipt_path)) {
+	if (ext("%s/iptables -t filter -A INPUT -m set --match-set tallow src -j DROP", ipt_path)) {
 		fprintf(stderr, "Unable to create iptables rule.\n");
 		exit(1);
 	}
 
 	if (has_ipv6) {
 		ext_ignore("%s/ip6tables -t filter -D INPUT -m set --match-set tallow src -j DROP", ipt_path);
-		if (ext("%s/ip6tables -t filter -D INPUT -m set --match-set tallow src -j DROP", ipt_path)) {
+		if (ext("%s/ip6tables -t filter -A INPUT -m set --match-set tallow src -j DROP", ipt_path)) {
 			fprintf(stderr, "Unable to create ipt6ables rule.\n");
 			exit(1);
 		}
