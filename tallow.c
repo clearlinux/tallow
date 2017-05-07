@@ -283,21 +283,27 @@ int main(void)
 		exit(1);
 	}
 
-	/* init ipsets */
-	ext_ignore("%s/ipset create tallow hash:ip timeout %d", ipt_path, expires);
-	if (has_ipv6)
-		ext_ignore("%s/ipset create tallow6 hash:ip timeout %d", ipt_path, expires);
-
-	/* init ip(6)tables chains */
-	ext_ignore("%s/iptables -t filter -D INPUT -m set --match-set tallow src -j DROP", ipt_path);
+	/* init ipset and iptables */
+	/* delete iptables ref to set before the ipset! */
+	ext_ignore("%s/iptables -t filter -D INPUT -m set --match-set tallow src -j DROP 2> /dev/null", ipt_path);
+	ext_ignore("%s/ipset destroy tallow 2> /dev/null", ipt_path);
+	if (ext("%s/ipset create tallow hash:ip family inet timeout %d", ipt_path, expires)) {
+		fprintf(stderr, "Unable to create ipv4 ipset.\n");
+		exit(1);
+	}
 	if (ext("%s/iptables -t filter -A INPUT -m set --match-set tallow src -j DROP", ipt_path)) {
 		fprintf(stderr, "Unable to create iptables rule.\n");
 		exit(1);
 	}
 
 	if (has_ipv6) {
-		ext_ignore("%s/ip6tables -t filter -D INPUT -m set --match-set tallow src -j DROP", ipt_path);
-		if (ext("%s/ip6tables -t filter -A INPUT -m set --match-set tallow src -j DROP", ipt_path)) {
+		ext_ignore("%s/ip6tables -t filter -D INPUT -m set --match-set tallow6 src -j DROP 2> /dev/null", ipt_path);
+		ext_ignore("%s/ipset destroy tallow6 2> /dev/null", ipt_path);
+		if (ext("%s/ipset create tallow6 hash:ip family inet6 timeout %d", ipt_path, expires)) {
+			fprintf(stderr, "Unable to create ipv6 ipset.\n");
+			exit(1);
+		}
+		if (ext("%s/ip6tables -t filter -A INPUT -m set --match-set tallow6 src -j DROP", ipt_path)) {
 			fprintf(stderr, "Unable to create ipt6ables rule.\n");
 			exit(1);
 		}
