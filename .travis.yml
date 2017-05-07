@@ -1,0 +1,25 @@
+dist: trusty
+
+compiler:
+    - gcc
+
+os:
+    - linux
+
+before_script:
+    ./autogen.sh
+
+language: c
+
+addons:
+    apt:
+        sources:
+            - ubuntu-toolchain-r-test
+        packages:
+            - valgrind
+            - autoconf 
+            - automake
+
+script:
+    - ./configure && make && make distcheck
+
