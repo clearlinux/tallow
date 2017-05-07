@@ -286,7 +286,6 @@ int main(void)
 				continue;
 
 			// todo: filter leading/trailing whitespace
-
 			if (!strcmp(key, "ipt_path"))
 				strncpy(ipt_path, val, PATH_MAX - 1);
 			if (!strcmp(key, "threshold"))
@@ -403,5 +402,5 @@ int main(void)
 
 	sd_journal_close(j);
 
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
