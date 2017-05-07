@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.64])
-AC_INIT([tallow], [0], [auke-jan.h.kok@intel.com])
+AC_INIT([tallow], [1], [auke-jan.h.kok@intel.com])
 AM_INIT_AUTOMAKE([])
 AC_CONFIG_FILES([Makefile])
 
@@ -10,7 +10,6 @@ AC_CONFIG_FILES([Makefile])
 AC_PROG_CC
 AC_PROG_INSTALL
 
-PKG_CHECK_MODULES([SYSTEMD], [systemd])
 PKG_CHECK_MODULES([LIBSYSTEMD], [libsystemd])
 AC_SUBST(LIBSYSTEMD_CFLAGS)
 AC_SUBST(LIBSYSTEMD_LIBS)
@@ -21,7 +20,6 @@ AC_ARG_WITH([systemdsystemunitdir], AC_HELP_STRING([--with-systemdsystemunitdir=
 if (test -n "${path_systemdsystemunit}"); then
 SYSTEMD_SYSTEMUNITDIR="${path_systemdsystemunit}"
 AC_SUBST(SYSTEMD_SYSTEMUNITDIR)
-AM_CONDITIONAL(SYSTEMD, test -n "${path_systemdsystemunit}")
 fi
 
 AC_CHECK_HEADERS([stdlib.h stdio.h string.h stdarg.h limits.h sys/time.h])
