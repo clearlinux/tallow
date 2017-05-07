@@ -1,5 +1,5 @@
 
-AM_CFLAGS = -g $(LIBSYSTEMD_CFLAGS) -Wall -Wno-uninitialized
+AM_CFLAGS = -g $(LIBSYSTEMD_CFLAGS) -Wall -Wno-uninitialized -W -D_FORTIFY_SOURCE=2
 
 systemdsystemunitdir = @SYSTEMD_SYSTEMUNITDIR@
 systemdsystemunit_DATA = tallow.service

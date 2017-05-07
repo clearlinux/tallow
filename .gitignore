@@ -14,3 +14,5 @@ tallow-*.tar.gz
 tallow-1/
 tallow.o
 tallow.service
+*~
+DEADJOE
