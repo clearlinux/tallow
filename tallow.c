@@ -295,7 +295,6 @@ int main(void)
 				continue;
 
 			// todo: filter leading/trailing whitespace
-
 			if (!strcmp(key, "ipt_path"))
 				strncpy(ipt_path, val, PATH_MAX - 1);
 			if (!strcmp(key, "threshold"))
