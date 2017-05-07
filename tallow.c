@@ -125,6 +125,9 @@ static void find(char *ip)
 	struct tallow_struct *n;
 	struct tallow_struct *w = whitelist;
 
+	if (!ip)
+		return;
+
 	/*
 	 * not validating the IP address format here, just
 	 * making sure we're not passing special characters
