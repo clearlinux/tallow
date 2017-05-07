@@ -10,11 +10,17 @@ tallow_LDADD = $(LIBSYSTEMD_LIBS)
 
 EXTRA_DIST = AUTHORS COPYING INSTALL tallow.service.in tallow.1.md
 
-dist_doc_DATA = tallow.conf
 dist_man_MANS = tallow.1 tallow.conf.5
+
+dist_doc_DATA = tallow.conf
 
 DISTCHECK_CONFIGURE_FLAGS = \
 	--with-systemdsystemunitdir=$(DESTDIR)$(SYSTEMDSYSTEMUNITDIR)
 
-docs: tallow.1.md
-	ronn -r tallow.1.md
+docs: tallow.1 tallow.conf.5
+tallow.conf.5:
+	ronn -r tallow.conf.5.md --pipe > tallow.conf.5
+
+tallow.1:
+	ronn -r tallow.1.md --pipe > tallow.1
+

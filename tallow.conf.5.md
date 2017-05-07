@@ -1,47 +1,57 @@
-.TH tallow.conf 5 "31 October 2012" ".5" "The tallow configuration file"
-.SH NAME
-tallow.conf \- Tallow daemon configuration file
-.SH SYNOPSIS
-/etc/tallow.conf
-.SH DESCRIPTION
+
+## tallow.conf
+
+The tallow configuration file
+
+## NAME
+
+tallow.conf - Tallow daemon configuration file
+
+## SYNOPSIS
+
+`/etc/tallow.conf`
+
+## DESCRIPTION
+
 This file is read on startup by the tallow(1) daemon, and can
 be used to provide options to the tallow daemon. If not present,
 tallow will operate with built-in defaults.
-.SH OPTIONS
-.TP
-\fBiptables_path\fR=\<string\>
-Specifies the location of the iptables(1) or ip6tables(1)  program.
-By default, tallow will look in "/usr/sbin" for them.
-.TP
-\fBchain\fR=\<string\>
-Specifies the iptables(1) chain name to use for maintaining the
-block list. By default, tallow maintains its iptables(1) rules
-in the \fBTALLOW\fR chain.
-.TP
-\fBexpires\fR=\<int\>
+
+## OPTIONS
+
+`ipt_path`=`<string>`
+Specifies the location of the ipset(1), iptables(1) or ip6tables(1)
+program. By default, tallow will look in "/usr/sbin" for them.
+
+`expires`=`<int>`
 The number of seconds that IP addresses are blocked for. Note that
 due to the implementation, IP addresses may be blocked for much
 longer than this period. If IP addresses are seen, but not
 blocked within this period, they are also removed from the
 watch list. Defaults to 3600s.
-.TP
-\fBthreshold\fR=\<int\>
+
+`threshold`=`<int>`
 Specifies the number of times an IP address may appear before it
 is blocked. Defaults to 3.
-.TP
-\fBwhitelist\fR=\<ipv4 address\>
+
+`whitelist`=`<ipv4 address>`
 Specify an IP address that should never be blocked. Multiple IP
-addresses can be included by repeating the \fBwhitelist\fR
+addresses can be included by repeating the `whitelist`
 option several times. By default, only 127.0.0.1 is whitelisted.
-.TP
-\fBipv6\fR=\<0|1\>
+
+`ipv6`=`<0|1>`
 Enable of disable ipv6 (ip6tables) support. Ipv6 is disabled
 automatically on systems that do not appear to have ipv6 support
 and enabled when ipv6 is present. Use this option to explicitly
 disable ipv6 support if your system does not have ipv6 or is
 missing ip6tables. Even with ipv6 disabled, tallow will track
 and log ipv6 addresses.
-.SH SEE ALSO
+
+## SEE ALSO
+
 tallow(1), iptables(1)
-.SH AUTHOR
+
+## AUTHOR
+
 Auke Kok <auke-jan.h.kok@intel.com>
+

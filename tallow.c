@@ -36,7 +36,6 @@ static struct tallow_struct *whitelist;
 #define FILTER_STRING "SYSLOG_IDENTIFIER=sshd"
 
 static char ipt_path[PATH_MAX];
-static char chain[PATH_MAX];
 static int threshold = 3;
 static int expires = 3600;
 static int has_ipv6 = 0;
@@ -219,7 +218,6 @@ int main(void)
 	int timeout = 60;
 
 	strcpy(ipt_path, "/usr/sbin");
-	strcpy(chain, "TALLOW");
 
 	memset(&s, 0, sizeof(struct sigaction));
 	s.sa_handler = sig;
@@ -257,8 +255,6 @@ int main(void)
 
 			if (!strcmp(key, "ipt_path"))
 				strncpy(ipt_path, val, PATH_MAX - 1);
-			if (!strcmp(key, "chain"))
-				strncpy(chain, val, PATH_MAX - 1);
 			if (!strcmp(key, "threshold"))
 				threshold = atoi(val);
 			if (!strcmp(key, "expires"))

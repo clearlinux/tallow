@@ -12,6 +12,7 @@ missing
 tallow
 tallow-*.tar.gz
 tallow-*/
+tallow.conf.5
 tallow.1
 tallow.1.html
 tallow.o

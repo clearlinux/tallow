@@ -17,16 +17,14 @@ root account and failed logins to invalid user accounts.
 If such logins were detected, the offending IP address is stored
 in a list. Items from this list are regularly purged, but if
 the amount of times that a specific IP address is seen exceeds
-a threshold (default 3), an iptables(1) rule is inserted in the
-`TALLOW` chain in the `filter` netfilter table. The
-rule will match all packets from the IP address and `DROP`
-them.
+a threshold (default 3), an ipset(1) entry is inserted in the
+`tallow` or `tallow6` ipset, and further packets from that ip
+address will be blocked by an `iptables(1)` or `ip6tables(1)`
+rule that tallow creates at startup.
 
-The system administrator needs to assure that all incoming packets
-are routed through the `TALLOW` chain by inserting a rule
-appropriately, e.g. `iptables -I INPUT -j TALLOW`. The `TALLOW`
-chain may have to be created manually first with e.g. `iptables -N
-TALLOW`.
+The system administrator needs to assure that the tallow
+and tallow6 ipsets are left alone and that the inserted
+iptables rules are properly matching on packets.
 
 Care should be taken to assure that legitimate users are not
 blocked inadvertently. You may wish to list any valid IP address
