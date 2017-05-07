@@ -35,8 +35,8 @@ static struct tallow_struct *whitelist;
 
 #define FILTER_STRING "SYSLOG_IDENTIFIER=sshd"
 
-static char iptables_path[PATH_MAX] = "/usr/sbin";
-static char chain[PATH_MAX] = "TALLOW";
+static char iptables_path[PATH_MAX];
+static char chain[PATH_MAX];
 static int threshold = 3;
 static int expires = 3600;
 static int has_ipv6 = 0;
@@ -253,6 +253,9 @@ int main(int argc, char *argv[])
 	FILE *f;
 	struct sigaction s;
 	int timeout = 60;
+
+	strcpy(iptables_path, "/usr/sbin");
+	strcpy(chain, "TALLOW");
 
 	memset(&s, 0, sizeof(struct sigaction));
 	s.sa_handler = sig;
