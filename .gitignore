@@ -11,7 +11,9 @@ install-sh
 missing
 tallow
 tallow-*.tar.gz
-tallow-1/
+tallow-*/
+tallow.1
+tallow.1.html
 tallow.o
 tallow.service
 *~
