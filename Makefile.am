@@ -1,12 +1,12 @@
 
-AM_CFLAGS = -g $(LIBSYSTEMD_CFLAGS) -Wall -Wno-uninitialized -W -D_FORTIFY_SOURCE=2
+AM_CFLAGS = -g $(LIBSYSTEMD_CFLAGS) $(LIBSYSTEMD_JOURNAL_CFLAGS) -Wall -Wno-uninitialized -W -D_FORTIFY_SOURCE=2
 
 systemdsystemunitdir = @SYSTEMD_SYSTEMUNITDIR@
 systemdsystemunit_DATA = tallow.service
 
 sbin_PROGRAMS = tallow
 tallow_SOURCES = tallow.c
-tallow_LDADD = $(LIBSYSTEMD_LIBS)
+tallow_LDADD = $(LIBSYSTEMD_LIBS) $(LIBSYSTEMD_JOURNAL_LIBS)
 
 EXTRA_DIST = AUTHORS COPYING INSTALL tallow.service.in tallow.1.md
 

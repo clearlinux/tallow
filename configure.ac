@@ -10,9 +10,11 @@ AC_CONFIG_FILES([Makefile])
 AC_PROG_CC
 AC_PROG_INSTALL
 
-PKG_CHECK_MODULES([LIBSYSTEMD], [libsystemd])
+PKG_CHECK_MODULES(LIBSYSTEMD, libsystemd,, [PKG_CHECK_MODULES(LIBSYSTEMD_JOURNAL, libsystemd-journal)])
 AC_SUBST(LIBSYSTEMD_CFLAGS)
 AC_SUBST(LIBSYSTEMD_LIBS)
+AC_SUBST(LIBSYSTEMD_JOURNAL_CFLAGS)
+AC_SUBST(LIBSYSTEMD_JOURNAL_LIBS)
 
 AC_ARG_WITH([systemdsystemunitdir], AC_HELP_STRING([--with-systemdsystemunitdir=DIR],
 	[path to systemd system service directory]), [path_systemdsystemunit=${withval}],
