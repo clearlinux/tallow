@@ -213,6 +213,37 @@ static void sig(int s)
 	}
 }
 
+static void prune(void)
+{
+	struct tallow_struct *s = head;
+	struct tallow_struct *p;
+	struct timeval tv;
+
+	(void) gettimeofday(&tv, NULL);
+	p = NULL;
+
+	while (s) {
+		if ((tv.tv_sec - s->time.tv_sec) > expires) {
+			if (p) {
+				p->next = s->next;
+				free(s->ip);
+				free(s);
+				s = p->next;
+				continue;
+			} else {
+				head = s->next;
+				free(s->ip);
+				free(s);
+				s = head;
+				p = NULL;
+				continue;
+			}
+		}
+		p = s;
+		s = s->next;
+	}
+}
+
 int main(void)
 {
 	int r;
@@ -366,6 +397,8 @@ int main(void)
 
 			free(m);
 		}
+
+		prune();
 	}
 
 	sd_journal_close(j);
