@@ -89,10 +89,15 @@ static void block(struct tallow_struct *s)
 		free(s->ip);
 		free(s);
 	} else {
-		struct tallow_struct *p = s;
-		s = s->next;
-		free(p->ip);
-		free(p);
+		struct tallow_struct *p = head;
+
+		while (p) {
+			if (p->next == s) 
+				p->next = s->next;
+			p = p->next;
+		}
+		free(s->ip);
+		free(s);
 	}
 }
 
