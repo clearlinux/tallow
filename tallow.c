@@ -82,18 +82,6 @@ static void block(struct tallow_struct *s)
 	}
 
 	fprintf(stderr, "Blocked %s\n", s->ip);
-
-	/* remove entry from the list */
-	if (head == s) {
-		head = s->next;
-		free(s->ip);
-		free(s);
-	} else {
-		struct tallow_struct *p = s;
-		s = s->next;
-		free(p->ip);
-		free(p);
-	}
 }
 
 static void whitelist_add(char *ip)
