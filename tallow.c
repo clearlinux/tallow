@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <signal.h>
 #include <unistd.h>
 #include <limits.h>
@@ -69,10 +70,46 @@ static void ext_ignore(char *fmt, ...)
 	__attribute__((unused)) int ret = system(cmd);
 }
 
+static void setup(void)
+{
+	static bool done = false;
+	if (done)
+		return;
+	done = true;
+
+	/* init ipset and iptables */
+	/* delete iptables ref to set before the ipset! */
+	ext_ignore("%s/iptables -t filter -D INPUT -m set --match-set tallow src -j DROP 2> /dev/null", ipt_path);
+	ext_ignore("%s/ipset destroy tallow 2> /dev/null", ipt_path);
+	if (ext("%s/ipset create tallow hash:ip family inet timeout %d", ipt_path, expires)) {
+		fprintf(stderr, "Unable to create ipv4 ipset.\n");
+		exit(EXIT_FAILURE);
+	}
+	if (ext("%s/iptables -t filter -A INPUT -m set --match-set tallow src -j DROP", ipt_path)) {
+		fprintf(stderr, "Unable to create iptables rule.\n");
+		exit(EXIT_FAILURE);
+	}
+
+	if (has_ipv6) {
+		ext_ignore("%s/ip6tables -t filter -D INPUT -m set --match-set tallow6 src -j DROP 2> /dev/null", ipt_path);
+		ext_ignore("%s/ipset destroy tallow6 2> /dev/null", ipt_path);
+		if (ext("%s/ipset create tallow6 hash:ip family inet6 timeout %d", ipt_path, expires)) {
+			fprintf(stderr, "Unable to create ipv6 ipset.\n");
+			exit(EXIT_FAILURE);
+		}
+		if (ext("%s/ip6tables -t filter -A INPUT -m set --match-set tallow6 src -j DROP", ipt_path)) {
+			fprintf(stderr, "Unable to create ipt6ables rule.\n");
+			exit(EXIT_FAILURE);
+		}
+	}
+}
+
 static void block(struct tallow_struct *s)
 {
 	if (s->count != threshold)
 		return;
+
+	setup();
 
 	if (strchr(s->ip, ':')) {
 		if (has_ipv6)
@@ -95,7 +132,7 @@ static void whitelist_add(char *ip)
 	n = malloc(sizeof(struct tallow_struct));
 	if (!n) {
 		fprintf(stderr, "Out of memory.\n");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	memset(n, 0, sizeof(struct tallow_struct));
 	n->ip = strdup(ip);
@@ -151,7 +188,7 @@ static void find(char *ip)
 	n = malloc(sizeof(struct tallow_struct));
 	if (!n) {
 		fprintf(stderr, "Out of memory.\n");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	memset(n, 0, sizeof(struct tallow_struct));
 
@@ -183,7 +220,7 @@ static void sig(int u __attribute__ ((unused)))
 		s = s->next;
 		free(n);
 	}
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
 
 static void prune(void)
@@ -282,34 +319,9 @@ int main(void)
 	r = sd_journal_open(&j, SD_JOURNAL_LOCAL_ONLY);
 	if (r < 0) {
 		fprintf(stderr, "Failed to open journal: %s\n", strerror(-r));
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 
-	/* init ipset and iptables */
-	/* delete iptables ref to set before the ipset! */
-	ext_ignore("%s/iptables -t filter -D INPUT -m set --match-set tallow src -j DROP 2> /dev/null", ipt_path);
-	ext_ignore("%s/ipset destroy tallow 2> /dev/null", ipt_path);
-	if (ext("%s/ipset create tallow hash:ip family inet timeout %d", ipt_path, expires)) {
-		fprintf(stderr, "Unable to create ipv4 ipset.\n");
-		exit(1);
-	}
-	if (ext("%s/iptables -t filter -A INPUT -m set --match-set tallow src -j DROP", ipt_path)) {
-		fprintf(stderr, "Unable to create iptables rule.\n");
-		exit(1);
-	}
-
-	if (has_ipv6) {
-		ext_ignore("%s/ip6tables -t filter -D INPUT -m set --match-set tallow6 src -j DROP 2> /dev/null", ipt_path);
-		ext_ignore("%s/ipset destroy tallow6 2> /dev/null", ipt_path);
-		if (ext("%s/ipset create tallow6 hash:ip family inet6 timeout %d", ipt_path, expires)) {
-			fprintf(stderr, "Unable to create ipv6 ipset.\n");
-			exit(1);
-		}
-		if (ext("%s/ip6tables -t filter -A INPUT -m set --match-set tallow6 src -j DROP", ipt_path)) {
-			fprintf(stderr, "Unable to create ipt6ables rule.\n");
-			exit(1);
-		}
-	}
 
 	/* ffwd journal */
 	sd_journal_add_match(j, FILTER_STRING, 0);
@@ -375,5 +387,5 @@ int main(void)
 
 	sd_journal_close(j);
 
-	exit(0);
+	exit(EXIT_SUCCESS);
 }
