@@ -169,36 +169,21 @@ static void find(char *ip)
 	return;
 }
 
-static void dump(void)
+static void sig(int u __attribute__ ((unused)))
 {
+	fprintf(stderr, "Exiting on request.\n");
+	sd_journal_close(j);
+
 	struct tallow_struct *s = head;
-	fprintf(stderr, "Received SIGUSR1 - dumping address table: address: count, time\n");
-
 	while (s) {
-		fprintf(stderr, "%s: %d, %lu.%lu\n", s->ip, s->count, s->time.tv_sec, s->time.tv_usec);
+		struct tallow_struct *n = NULL;
+
+		free(s->ip);
+		n = s;
 		s = s->next;
+		free(n);
 	}
-}
-
-static void sig(int s)
-{
-	if (s == SIGUSR1) {
-		dump();
-	} else {
-		fprintf(stderr, "Exiting on request.\n");
-		sd_journal_close(j);
-
-		struct tallow_struct *s = head;
-		while (s) {
-			struct tallow_struct *n = NULL;
-
-			free(s->ip);
-			n = s;
-			s = s->next;
-			free(n);
-		}
-		exit(0);
-	}
+	exit(0);
 }
 
 static void prune(void)
@@ -243,7 +228,6 @@ int main(void)
 
 	memset(&s, 0, sizeof(struct sigaction));
 	s.sa_handler = sig;
-	sigaction(SIGUSR1, &s, NULL);
 	sigaction(SIGHUP, &s, NULL);
 	sigaction(SIGTERM, &s, NULL);
 	sigaction(SIGINT, &s, NULL);
