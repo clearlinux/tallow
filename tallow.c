@@ -371,14 +371,6 @@ int main(void)
 				find(t);
 			}
 
-
-			if (strstr(m, "MESSAGE=Received disconnect from ")) {
-				t = strtok(m, " ");
-				for (i = 0; i < 4; i++)
-					t = strtok(NULL, " ");
-				find(t);
-			}
-
 			free(m);
 		}
 
