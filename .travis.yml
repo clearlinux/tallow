@@ -15,6 +15,7 @@ addons:
         sources:
             - ubuntu-toolchain-r-test
         packages:
+            - libsystemd-journal-dev
             - valgrind
             - autoconf
             - automake
