@@ -1,0 +1,37 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "TALLOW" "1" "May 2017" "" ""
+.
+.SH "NAME"
+\fBtallow\fR
+.
+.SH "tallow"
+Reduce log clutter due to ssh login attempts\.
+.
+.SH "SYNOPSIS"
+\fB/usr/sbin/tallow\fR
+.
+.SH "DESCRIPTION"
+\fBtallow\fR is a daemon that watches the systemd journal for messages from the \fBsshd\fR service\. It parses the messages and looks for attempted random logins such as failed logins to the root account and failed logins to invalid user accounts\.
+.
+.P
+If such logins were detected, the offending IP address is stored in a list\. Items from this list are regularly purged, but if the amount of times that a specific IP address is seen exceeds a threshold (default 3), an ipset(1) entry is inserted in the \fBtallow\fR or \fBtallow6\fR ipset, and further packets from that ip address will be blocked by an \fBiptables(1)\fR or \fBip6tables(1)\fR rule that tallow creates at startup\.
+.
+.P
+The system administrator needs to assure that the tallow and tallow6 ipsets are left alone and that the inserted iptables rules are properly matching on packets\.
+.
+.P
+Care should be taken to assure that legitimate users are not blocked inadvertently\. You may wish to list any valid IP address with the whitelist option in tallow\.conf(5)\. Multiple addresses can be whitelisted\.
+.
+.SH "OPTIONS"
+The \fBtallow\fR daemon itself has no runtime configuration\. All configuration is done through the tallow\.conf(5) config file\.
+.
+.SH "SEE ALSO"
+systemd\-journald(1), iptables(1), tallow\.conf(5)
+.
+.SH "BUGS"
+\fBtallow\fR is \fBNOT A SECURITY SOLUTION\fR, nor does it protect against random password logins\. A attacker may still be able to logon to your systems if you allow password logins\.
+.
+.SH "AUTHOR"
+Auke Kok \fIauke\-jan\.h\.kok@intel\.com\fR
