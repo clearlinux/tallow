@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <sys/time.h>
+#include <pcre.h>
 
 #include <systemd/sd-journal.h>
 
@@ -35,6 +36,9 @@ static struct tallow_struct *head;
 static struct tallow_struct *whitelist;
 
 #define FILTER_STRING "SYSLOG_IDENTIFIER=sshd"
+static char *pattern = "MESSAGE=Failed password for .* from ([0-9a-z:.]+) port \\d+ ssh2";
+
+#define MAX_OFFSETS 30
 
 static char ipt_path[PATH_MAX];
 static int threshold = 3;
@@ -144,7 +148,7 @@ static void whitelist_add(char *ip)
 		w->next = n;
 }
 
-static void find(char *ip)
+static void find(const char *ip)
 {
 	struct tallow_struct *s = head;
 	struct tallow_struct *n;
@@ -333,6 +337,11 @@ int main(void)
 
 	fprintf(stderr, "Started\n");
 
+	pcre *re = NULL;
+	int err;
+	const char *pcre_err;
+	re = pcre_compile(pattern, 0, &pcre_err, &err, NULL);
+
 	for (;;) {
 		const void *d;
 		size_t l;
@@ -344,9 +353,7 @@ int main(void)
 		}
 
 		while (sd_journal_next(j) != 0) {
-			char *t;
 			char *m;
-			int i;
 
 			if (sd_journal_get_data(j, "MESSAGE", &d, &l) < 0) {
 				fprintf(stderr, "Failed to read message field: %s\n", strerror(-r));
@@ -356,21 +363,19 @@ int main(void)
 			m = strndup(d, l+1);
 			m[l] = '\0';
 
-			if (strstr(m, "MESSAGE=Failed password for invalid user ")) {
-				t = strtok(m, " ");
-				for (i = 0; i < 7; i++)
-					t = strtok(NULL, " ");
-				find(t);
-			}
-
-			if (strstr(m, "MESSAGE=Failed password for root ")) {
-				t = strtok(m, " ");
-				for (i = 0; i < 5; i++)
-					t = strtok(NULL, " ");
-				find(t);
+			int off[MAX_OFFSETS];
+			int ret = pcre_exec(re, NULL, m, l, 0, 0, off, MAX_OFFSETS);
+			if (ret == 2) {
+				const char *s;
+				ret = pcre_get_substring(m, off, 2, 1, &s);
+				if (ret > 0) {
+					find(s);
+					pcre_free_substring(s);
+				}
 			}
 
 			free(m);
+
 		}
 
 		prune();
