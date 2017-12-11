@@ -26,7 +26,7 @@
 
 struct tallow_struct {
 	char *ip;
-	int count;
+	float score;
 	struct timeval time;
 	struct tallow_struct *next;
 };
@@ -36,12 +36,20 @@ static struct tallow_struct *head;
 static struct tallow_struct *whitelist;
 
 #define FILTER_STRING "SYSLOG_IDENTIFIER=sshd"
-static char *pattern = "MESSAGE=Failed password for .* from ([0-9a-z:.]+) port \\d+ ssh2";
+struct pattern_struct {
+	float weight;
+	char *pattern;
+	pcre *re;
+};
+
+#define PATTERN_COUNT 1
+static struct pattern_struct patterns[PATTERN_COUNT] = {
+	{0.4, "MESSAGE=Failed password for .* from ([0-9a-z:.]+) port \\d+ ssh2", NULL}
+};
 
 #define MAX_OFFSETS 30
 
 static char ipt_path[PATH_MAX];
-static int threshold = 3;
 static int expires = 3600;
 static int has_ipv6 = 0;
 static sd_journal *j;
@@ -110,7 +118,8 @@ static void setup(void)
 
 static void block(struct tallow_struct *s)
 {
-	if (s->count != threshold)
+	/* with different weights, we now have a fixed threshold */
+	if (s->score < 1.0)
 		return;
 
 	setup();
@@ -148,7 +157,7 @@ static void whitelist_add(char *ip)
 		w->next = n;
 }
 
-static void find(const char *ip)
+static void find(const char *ip, float weight)
 {
 	struct tallow_struct *s = head;
 	struct tallow_struct *n;
@@ -175,7 +184,7 @@ static void find(const char *ip)
 	/* walk and update entry */
 	while (s) {
 		if (!strcmp(s->ip, ip)) {
-			s->count++;
+			s->score += weight;
 			(void) gettimeofday(&s->time, NULL);
 
 			block(s);
@@ -202,7 +211,7 @@ static void find(const char *ip)
 		s->next = n;
 
 	n->ip = strdup(ip);
-	n->count = 1;
+	n->score = weight;
 	n->next = NULL;
 	(void) gettimeofday(&n->time, NULL);
 
@@ -301,8 +310,6 @@ int main(void)
 			// todo: filter leading/trailing whitespace
 			if (!strcmp(key, "ipt_path"))
 				strncpy(ipt_path, val, PATH_MAX - 1);
-			if (!strcmp(key, "threshold"))
-				threshold = atoi(val);
 			if (!strcmp(key, "expires"))
 				expires = atoi(val);
 			if (!strcmp(key, "whitelist"))
@@ -337,10 +344,16 @@ int main(void)
 
 	fprintf(stderr, "Started\n");
 
-	pcre *re = NULL;
-	int err;
-	const char *pcre_err;
-	re = pcre_compile(pattern, 0, &pcre_err, &err, NULL);
+	for (int i = 0; i < PATTERN_COUNT; i++) {
+		int err;
+		const char *pcre_err;
+		patterns[i].re = pcre_compile(patterns[i].pattern, 0, &pcre_err, &err, NULL);
+		if (!patterns[i].re) {
+			fprintf(stderr, "PCRE compilation failed. Pattern %d, offset %d: %s\n",
+				i, err, pcre_err);
+			exit(EXIT_FAILURE);
+		}
+	}
 
 	for (;;) {
 		const void *d;
@@ -363,14 +376,16 @@ int main(void)
 			m = strndup(d, l+1);
 			m[l] = '\0';
 
-			int off[MAX_OFFSETS];
-			int ret = pcre_exec(re, NULL, m, l, 0, 0, off, MAX_OFFSETS);
-			if (ret == 2) {
-				const char *s;
-				ret = pcre_get_substring(m, off, 2, 1, &s);
-				if (ret > 0) {
-					find(s);
-					pcre_free_substring(s);
+			for (int i = 0; i < PATTERN_COUNT; i++) {
+				int off[MAX_OFFSETS];
+				int ret = pcre_exec(patterns[i].re, NULL, m, l, 0, 0, off, MAX_OFFSETS);
+				if (ret == 2) {
+					const char *s;
+					ret = pcre_get_substring(m, off, 2, 1, &s);
+					if (ret > 0) {
+						find(s, patterns[i].weight);
+						pcre_free_substring(s);
+					}
 				}
 			}
 
