@@ -35,6 +35,7 @@ struct tallow_struct {
 	float score;
 	struct timeval time;
 	struct tallow_struct *next;
+	bool blocked;
 };
 
 static struct tallow_struct *head;
@@ -48,15 +49,17 @@ struct pattern_struct {
 	pcre *re;
 };
 
-#define PATTERN_COUNT 7
+#define PATTERN_COUNT 9
 static struct pattern_struct patterns[PATTERN_COUNT] = {
-	{0.3, "MESSAGE=Failed password for .* from ([0-9a-z:.]+) port \\d+ ssh2", NULL},
-	{0.3, "MESSAGE=Invalid user .* from ([0-9a-z:.]+) port \\d+", NULL},
-	{0.3, "MESSAGE=error: PAM: Authentication failure for .* from ([0-9a-z:.]+)", NULL},
-	{0.5, "MESSAGE=Unable to negotiate with ([0-9a-z:.]+) port \\d+: no matching key exchange method found.", NULL},
-	{0.5, "MESSAGE=Bad protocol version identification .* from ([0-9a-z:.]+)", NULL},
-	{0.5, "MESSAGE=Did not receive identification string from ([0-9a-z:.]+) port \\d+", NULL},
-	{0.5, "MESSAGE=Connection closed by authenticating user .* ([0-9a-z:.]+) port \\d+", NULL}
+	{0.4, "MESSAGE=Failed .* for .* from ([0-9a-z:.]+) port \\d+ ssh2", NULL},
+	{0.4, "MESSAGE=error: PAM: Authentication failure for .* from ([0-9a-z:.]+)", NULL},
+	{0.6, "MESSAGE=Failed .* for root from ([0-9a-z:.]+) port \\d+ ssh2", NULL},
+	{0.6, "MESSAGE=Invalid user .* from ([0-9a-z:.]+) port \\d+", NULL},
+	{0.6, "MESSAGE=Unable to negotiate with ([0-9a-z:.]+) port \\d+: no matching key exchange method found.", NULL},
+	{0.6, "MESSAGE=Bad protocol version identification .* from ([0-9a-z:.]+)", NULL},
+	{0.6, "MESSAGE=Did not receive identification string from ([0-9a-z:.]+) port \\d+", NULL},
+	{0.6, "MESSAGE=Connection closed by authenticating user .* ([0-9a-z:.]+) port \\d+", NULL},
+	{0.6, "MESSAGE=Received disconnect from ([0-9a-z:.]+) port .*\\[preauth\\]", NULL}
 };
 
 #define MAX_OFFSETS 30
@@ -130,17 +133,16 @@ static void setup(void)
 
 static void block(struct tallow_struct *s)
 {
-	/* with different weights, we now have a fixed threshold */
-	if (s->score < 1.0)
-		return;
-
 	setup();
 
+	s->blocked = true;
+
 	if (strchr(s->ip, ':')) {
-		if (has_ipv6)
-			(void) ext("%s/ipset -A tallow6 %s", ipt_path, s->ip);
+		if (has_ipv6) {
+			(void) ext("%s/ipset add tallow6 %s", ipt_path, s->ip);
+		}
 	} else {
-		(void) ext("%s/ipset -A tallow %s", ipt_path, s->ip);
+		(void) ext("%s/ipset add tallow %s", ipt_path, s->ip);
 	}
 
 	fprintf(stderr, "Blocked %s\n", s->ip);
@@ -154,14 +156,15 @@ static void whitelist_add(char *ip)
 	while (w && w->next)
 		w = w->next;
 
-	n = malloc(sizeof(struct tallow_struct));
+	n = calloc(1, sizeof(struct tallow_struct));
 	if (!n) {
 		fprintf(stderr, "Out of memory.\n");
 		exit(EXIT_FAILURE);
 	}
-	memset(n, 0, sizeof(struct tallow_struct));
+
 	n->ip = strdup(ip);
 	n->next = NULL;
+	n->blocked = false;
 
 	if (!whitelist)
 		whitelist = n;
@@ -200,7 +203,14 @@ static void find(const char *ip, float weight)
 			dbg("%s: %1.3f\n", s->ip, s->score);
 			(void) gettimeofday(&s->time, NULL);
 
-			block(s);
+			if (s->blocked) {
+				return;
+			}
+
+			if (s->score >= 1.0) {
+				block(s);
+			}
+
 			return;
 		}
 
@@ -211,12 +221,11 @@ static void find(const char *ip, float weight)
 	}
 
 	/* append */
-	n = malloc(sizeof(struct tallow_struct));
+	n = calloc(1, sizeof(struct tallow_struct));
 	if (!n) {
 		fprintf(stderr, "Out of memory.\n");
 		exit(EXIT_FAILURE);
 	}
-	memset(n, 0, sizeof(struct tallow_struct));
 
 	if (!head)
 		head = n;
@@ -226,10 +235,13 @@ static void find(const char *ip, float weight)
 	n->ip = strdup(ip);
 	n->score = weight;
 	n->next = NULL;
+	n->blocked = false;
 	(void) gettimeofday(&n->time, NULL);
 	dbg("%s: %1.3f\n", n->ip, n->score);
 
-	block(n);
+	if (weight >= 1.0) {
+		block(n);
+	}
 	return;
 }
 
