@@ -42,9 +42,15 @@ struct pattern_struct {
 	pcre *re;
 };
 
-#define PATTERN_COUNT 1
+#define PATTERN_COUNT 7
 static struct pattern_struct patterns[PATTERN_COUNT] = {
-	{0.4, "MESSAGE=Failed password for .* from ([0-9a-z:.]+) port \\d+ ssh2", NULL}
+	{0.3, "MESSAGE=Failed password for .* from ([0-9a-z:.]+) port \\d+ ssh2", NULL},
+	{0.3, "MESSAGE=Invalid user .* from ([0-9a-z:.]+) port \\d+", NULL},
+	{0.3, "MESSAGE=error: PAM: Authentication failure for .* from ([0-9a-z:.]+)", NULL},
+	{0.5, "MESSAGE=Unable to negotiate with ([0-9a-z:.]+) port \\d+: no matching key exchange method found.", NULL},
+	{0.5, "MESSAGE=Bad protocol version identification .* from ([0-9a-z:.]+)", NULL},
+	{0.5, "MESSAGE=Did not receive identification string from ([0-9a-z:.]+) port \\d+", NULL},
+	{0.5, "MESSAGE=Connection closed by authenticating user .* ([0-9a-z:.]+) port \\d+", NULL}
 };
 
 #define MAX_OFFSETS 30
