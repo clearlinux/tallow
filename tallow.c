@@ -24,6 +24,12 @@
 
 #include <systemd/sd-journal.h>
 
+#ifdef DEBUG
+#define dbg(args...) fprintf(stderr, ##args)
+#else
+#define dbg(args...) do {} while (0)
+#endif
+
 struct tallow_struct {
 	char *ip;
 	float score;
@@ -191,6 +197,7 @@ static void find(const char *ip, float weight)
 	while (s) {
 		if (!strcmp(s->ip, ip)) {
 			s->score += weight;
+			dbg("%s: %1.3f\n", s->ip, s->score);
 			(void) gettimeofday(&s->time, NULL);
 
 			block(s);
@@ -220,6 +227,7 @@ static void find(const char *ip, float weight)
 	n->score = weight;
 	n->next = NULL;
 	(void) gettimeofday(&n->time, NULL);
+	dbg("%s: %1.3f\n", n->ip, n->score);
 
 	block(n);
 	return;
@@ -240,6 +248,16 @@ static void sig(int u __attribute__ ((unused)))
 		free(n);
 	}
 	exit(EXIT_SUCCESS);
+}
+
+static void sigusr1(int u __attribute__ ((unused)))
+{
+	fprintf(stderr, "Dumping score list on request:\n");
+	struct tallow_struct *s = head;
+	while (s) {
+		fprintf(stderr, "%ld %s %1.3f\n", s->time.tv_sec, s->ip, s->score);
+		s = s->next;
+	}
 }
 
 static void prune(void)
@@ -287,6 +305,10 @@ int main(void)
 	sigaction(SIGHUP, &s, NULL);
 	sigaction(SIGTERM, &s, NULL);
 	sigaction(SIGINT, &s, NULL);
+
+	memset(&s, 0, sizeof(struct sigaction));
+	s.sa_handler = sigusr1;
+	sigaction(SIGUSR1, &s, NULL);
 
 	if (access("/proc/sys/net/ipv6", R_OK | X_OK) == 0)
 		has_ipv6 = 1;
@@ -343,10 +365,10 @@ int main(void)
 	sd_journal_add_match(j, FILTER_STRING, 0);
 	r = sd_journal_seek_tail(j);
 	sd_journal_wait(j, (uint64_t) 0);
-	fprintf(stderr, "sd_journal_seek_tail() returned %d\n", r);
+	dbg("sd_journal_seek_tail() returned %d\n", r);
 	while (sd_journal_next(j) != 0)
 		r++;
-	fprintf(stderr, "Forwarded through %d items in the journal to reach the end\n", r);
+	dbg("Forwarded through %d items in the journal to reach the end\n", r);
 
 	fprintf(stderr, "Started\n");
 
@@ -389,6 +411,7 @@ int main(void)
 					const char *s;
 					ret = pcre_get_substring(m, off, 2, 1, &s);
 					if (ret > 0) {
+						dbg("%s == %s\n", s, patterns[i].pattern);
 						find(s, patterns[i].weight);
 						pcre_free_substring(s);
 					}
