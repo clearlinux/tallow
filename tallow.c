@@ -283,6 +283,7 @@ static void prune(void)
 
 	while (s) {
 		if ((tv.tv_sec - s->time.tv_sec) > expires) {
+			dbg("Expired record for %s\n", s->ip);
 			if (p) {
 				p->next = s->next;
 				free(s->ip);
