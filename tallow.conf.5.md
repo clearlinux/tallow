@@ -30,10 +30,6 @@ longer than this period. If IP addresses are seen, but not
 blocked within this period, they are also removed from the
 watch list. Defaults to 3600s.
 
-`threshold`=`<int>`
-Specifies the number of times an IP address may appear before it
-is blocked. Defaults to 3.
-
 `whitelist`=`<ipv4 address>`
 Specify an IP address that should never be blocked. Multiple IP
 addresses can be included by repeating the `whitelist`
@@ -49,7 +45,7 @@ and log ipv6 addresses.
 
 ## SEE ALSO
 
-tallow(1), iptables(1)
+tallow(1)
 
 ## AUTHOR
 
