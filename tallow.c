@@ -302,7 +302,14 @@ static void prune(void)
 	p = NULL;
 
 	while (s) {
-		if ((tv.tv_sec - s->time.tv_sec) > expires) {
+		/*
+		 * Expire all records, but if they are blocked, make sure to
+		 * expire them *before* the ipset rule expires, otherwise
+		 * you might get an IP to bypass checks.
+		 */
+		time_t age = tv.tv_sec - s->time.tv_sec;
+		if ((age > expires) ||
+		    ((s->blocked) && (age > expires / 2))) {
 			dbg("Expired record for %s\n", s->ip);
 			if (p) {
 				p->next = s->next;
