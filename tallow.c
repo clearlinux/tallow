@@ -44,6 +44,7 @@ static struct tallow_struct *whitelist;
 
 #define FILTER_STRING "SYSLOG_IDENTIFIER=sshd"
 struct pattern_struct {
+	int instant_block;
 	float weight;
 	char *pattern;
 	pcre *re;
@@ -51,15 +52,15 @@ struct pattern_struct {
 
 #define PATTERN_COUNT 9
 static struct pattern_struct patterns[PATTERN_COUNT] = {
-	{0.4, "MESSAGE=Failed .* for .* from ([0-9a-z:.]+) port \\d+ ssh2", NULL},
-	{0.4, "MESSAGE=error: PAM: Authentication failure for .* from ([0-9a-z:.]+)", NULL},
-	{0.6, "MESSAGE=Failed .* for root from ([0-9a-z:.]+) port \\d+ ssh2", NULL},
-	{0.6, "MESSAGE=Invalid user .* from ([0-9a-z:.]+) port \\d+", NULL},
-	{0.6, "MESSAGE=Unable to negotiate with ([0-9a-z:.]+) port \\d+: no matching key exchange method found.", NULL},
-	{0.6, "MESSAGE=Bad protocol version identification .* from ([0-9a-z:.]+)", NULL},
-	{0.6, "MESSAGE=Did not receive identification string from ([0-9a-z:.]+) port \\d+", NULL},
-	{0.6, "MESSAGE=Connection closed by authenticating user .* ([0-9a-z:.]+) port \\d+", NULL},
-	{0.6, "MESSAGE=Received disconnect from ([0-9a-z:.]+) port .*\\[preauth\\]", NULL}
+	{ 0, 0.4, "MESSAGE=Failed .* for .* from ([0-9a-z:.]+) port \\d+ ssh2", NULL},
+	{ 0, 0.4, "MESSAGE=error: PAM: Authentication failure for .* from ([0-9a-z:.]+)", NULL},
+	{15, 0.3, "MESSAGE=Invalid user .* from ([0-9a-z:.]+) port \\d+", NULL},
+	{15, 0.3, "MESSAGE=Did not receive identification string from ([0-9a-z:.]+) port \\d+", NULL},
+	{30, 0.3, "MESSAGE=Failed .* for root from ([0-9a-z:.]+) port \\d+ ssh2", NULL},
+	{15, 0.6, "MESSAGE=Bad protocol version identification .* from ([0-9a-z:.]+)", NULL},
+	{15, 0.6, "MESSAGE=Connection closed by authenticating user .* ([0-9a-z:.]+) port \\d+", NULL},
+	{15, 0.6, "MESSAGE=Received disconnect from ([0-9a-z:.]+) port .*\\[preauth\\]", NULL},
+	{60, 0.6, "MESSAGE=Unable to negotiate with ([0-9a-z:.]+) port \\d+: no matching key exchange method found.", NULL}
 };
 
 #define MAX_OFFSETS 30
@@ -131,21 +132,36 @@ static void setup(void)
 	}
 }
 
-static void block(struct tallow_struct *s)
+static void block(struct tallow_struct *s, int instant_block)
 {
 	setup();
 
-	s->blocked = true;
 
 	if (strchr(s->ip, ':')) {
 		if (has_ipv6) {
-			(void) ext("%s/ipset add tallow6 %s", ipt_path, s->ip);
+			if (instant_block > 0) {
+				(void) ext("%s/ipset -! add tallow6 %s timeout %d",
+					   ipt_path, s->ip, instant_block);
+			} else {
+				(void) ext("%s/ipset -! add tallow6 %s", ipt_path, s->ip);
+				s->blocked = true;
+			}
 		}
 	} else {
-		(void) ext("%s/ipset add tallow %s", ipt_path, s->ip);
+		if (instant_block > 0) {
+			(void) ext("%s/ipset -! add tallow %s timeout %d",
+				   ipt_path, s->ip, instant_block);
+		} else {
+			(void) ext("%s/ipset -! add tallow %s", ipt_path, s->ip);
+			s->blocked = true;
+		}
 	}
 
-	fprintf(stderr, "Blocked %s\n", s->ip);
+	if (s->blocked) {
+		fprintf(stderr, "Blocked %s\n", s->ip);
+	} else {
+		dbg("Throttled %s\n", s->ip);
+	}
 }
 
 static void whitelist_add(char *ip)
@@ -172,7 +188,7 @@ static void whitelist_add(char *ip)
 		w->next = n;
 }
 
-static void find(const char *ip, float weight)
+static void find(const char *ip, float weight, int instant_block)
 {
 	struct tallow_struct *s = head;
 	struct tallow_struct *n;
@@ -208,7 +224,9 @@ static void find(const char *ip, float weight)
 			}
 
 			if (s->score >= 1.0) {
-				block(s);
+				block(s, 0);
+			} else if (instant_block > 0) {
+				block(s, instant_block);
 			}
 
 			return;
@@ -240,7 +258,9 @@ static void find(const char *ip, float weight)
 	dbg("%s: %1.3f\n", n->ip, n->score);
 
 	if (weight >= 1.0) {
-		block(n);
+		block(n, 0);
+	} else if (instant_block > 0) {
+		block(n, instant_block);
 	}
 	return;
 }
@@ -425,7 +445,7 @@ int main(void)
 					ret = pcre_get_substring(m, off, 2, 1, &s);
 					if (ret > 0) {
 						dbg("%s == %s\n", s, patterns[i].pattern);
-						find(s, patterns[i].weight);
+						find(s, patterns[i].weight, patterns[i].instant_block);
 						pcre_free_substring(s);
 					}
 				}
