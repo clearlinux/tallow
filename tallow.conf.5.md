@@ -43,6 +43,22 @@ disable ipv6 support if your system does not have ipv6 or is
 missing ip6tables. Even with ipv6 disabled, tallow will track
 and log ipv6 addresses.
 
+`nocreate`=`<0|1>`
+Disable the creation of iptables rules and ipset sets. By default,
+tallow will create new iptables(1) and ip6tables(1) rules when needed
+automatically. If set to `1`, `tallow(1)` will not create any new
+iptables rules or ipset sets to work. You should create them manually
+before tallow starts up and remove them afterwards. To create them
+manually, you can use the following commands:
+
+  ```
+  iptables -t filter -I INPUT -m set --match-set tallow src -j DROP
+  ipset create tallow hash:ip family inet timeout 3600
+
+  ip6tables -t filter -I INPUT -m set --match-set tallow6 src -j DROP
+  ipset create tallow6 hash:ip family inet6 timeout 3600
+  ```
+
 ## SEE ALSO
 
 tallow(1)

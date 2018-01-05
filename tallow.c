@@ -68,6 +68,7 @@ static struct pattern_struct patterns[PATTERN_COUNT] = {
 static char ipt_path[PATH_MAX];
 static int expires = 3600;
 static int has_ipv6 = 0;
+static bool nocreate = false;
 static sd_journal *j;
 
 static int ext(char *fmt, ...)
@@ -104,6 +105,9 @@ static void setup(void)
 	if (done)
 		return;
 	done = true;
+
+	if (nocreate)
+		return;
 
 	/* init ipset and iptables */
 	/* delete iptables ref to set before the ipset! */
@@ -384,6 +388,8 @@ int main(void)
 				whitelist_add(val);
 			if (!strcmp(key, "ipv6"))
 				has_ipv6 = atoi(val);
+			if (!strcmp(key, "nocreate"))
+				nocreate = (atoi(val) == 1);
 		}
 		fclose(f);
 	}

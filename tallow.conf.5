@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "TALLOW" "5" "December 2017" "" ""
+.TH "TALLOW" "5" "January 2018" "" ""
 .
 .SH "NAME"
 \fBtallow\fR
@@ -29,6 +29,23 @@ This file is read on startup by the tallow(1) daemon, and can be used to provide
 .
 .P
 \fBipv6\fR=\fB<0|1>\fR Enable of disable ipv6 (ip6tables) support\. Ipv6 is disabled automatically on systems that do not appear to have ipv6 support and enabled when ipv6 is present\. Use this option to explicitly disable ipv6 support if your system does not have ipv6 or is missing ip6tables\. Even with ipv6 disabled, tallow will track and log ipv6 addresses\.
+.
+.P
+\fBnocreate\fR=\fB<0|1>\fR Disable the creation of iptables rules and ipset sets\. By default, tallow will create new iptables(1) and ip6tables(1) rules when needed automatically\. If set to \fB1\fR, \fBtallow(1)\fR will not create any new iptables rules or ipset sets to work\. You should create them manually before tallow starts up and remove them afterwards\. To create them manually, you can use the following commands:
+.
+.IP "" 4
+.
+.nf
+
+  iptables \-t filter \-I INPUT \-m set \-\-match\-set tallow src \-j DROP
+  ipset create tallow hash:ip family inet timeout 3600
+
+  ip6tables \-t filter \-I INPUT \-m set \-\-match\-set tallow6 src \-j DROP
+  ipset create tallow6 hash:ip family inet6 timeout 3600
+.
+.fi
+.
+.IP "" 0
 .
 .SH "SEE ALSO"
 tallow(1)
