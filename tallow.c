@@ -40,7 +40,13 @@ struct tallow_struct {
 
 static struct tallow_struct *head;
 
-static struct tallow_struct *whitelist;
+struct whitelist_struct {
+	char *ip;
+	size_t len;
+	struct whitelist_struct *next;
+};
+
+static struct whitelist_struct *whitelist;
 
 #define FILTER_STRING "SYSLOG_IDENTIFIER=sshd"
 struct pattern_struct {
@@ -170,21 +176,24 @@ static void block(struct tallow_struct *s, int instant_block)
 
 static void whitelist_add(char *ip)
 {
-	struct tallow_struct *w = whitelist;
-	struct tallow_struct *n;
+	struct whitelist_struct *w = whitelist;
+	struct whitelist_struct *n;
 
 	while (w && w->next)
 		w = w->next;
 
-	n = calloc(1, sizeof(struct tallow_struct));
+	n = calloc(1, sizeof(struct whitelist_struct));
 	if (!n) {
 		fprintf(stderr, "Out of memory.\n");
 		exit(EXIT_FAILURE);
 	}
 
 	n->ip = strdup(ip);
-	n->next = NULL;
-	n->blocked = false;
+	size_t l = strlen(ip);
+	if ((ip[l-1] == '.') || (ip[l-1] == ':'))
+		n->len = l;
+	else
+		n->len = -1;
 
 	if (!whitelist)
 		whitelist = n;
@@ -196,7 +205,7 @@ static void find(const char *ip, float weight, int instant_block)
 {
 	struct tallow_struct *s = head;
 	struct tallow_struct *n;
-	struct tallow_struct *w = whitelist;
+	struct whitelist_struct *w = whitelist;
 
 	if (!ip)
 		return;
@@ -211,8 +220,13 @@ static void find(const char *ip, float weight, int instant_block)
 
 	/* whitelist */
 	while (w) {
-		if (!strcmp(w->ip, ip))
-			return;
+		if (w->len > 0) {
+			if (!strncmp(w->ip, ip, w->len))
+				return;
+		} else {
+			if (!strcmp(w->ip, ip))
+				return;
+		}
 		w = w->next;
 	}
 

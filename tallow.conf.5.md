@@ -30,10 +30,17 @@ longer than this period. If IP addresses are seen, but not
 blocked within this period, they are also removed from the
 watch list. Defaults to 3600s.
 
-`whitelist`=`<ipv4 address>`
-Specify an IP address that should never be blocked. Multiple IP
-addresses can be included by repeating the `whitelist`
-option several times. By default, only 127.0.0.1 is whitelisted.
+`whitelist`=`<ip address|pattern>`
+Specify an IP address or `pattern` that should never be
+blocked. Multiple IP addresses can be included by repeating the
+`whitelist` option several times. By default, only 127.0.0.1 is
+whitelisted.
+
+If the last character of the listed ip adress is a `.` or a `:`, then
+the matching is only performed on the leftmost characters of an IP
+address against the whitelist entry. For instance, if you whitelist
+`10.` then all IP addresses in the `10/8` subnet mask will match this
+whitelist entry and never be blocked.
 
 `ipv6`=`<0|1>`
 Enable of disable ipv6 (ip6tables) support. Ipv6 is disabled
