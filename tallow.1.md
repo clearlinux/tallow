@@ -40,6 +40,11 @@ be whitelisted.
 The `tallow` daemon itself has no runtime configuration. All
 configuration is done through the tallow.conf(5) config file.
 
+## SIGNALS
+
+The `USR1` signal causes `tallow` to print out it's internal tracking
+table of IP addresses.
+
 ## SEE ALSO
 
 systemd-journald(1), iptables(1), ipset(1), tallow.conf(5)

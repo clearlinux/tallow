@@ -3,7 +3,7 @@
 
 AC_PREREQ([2.64])
 AC_INIT([tallow], [7], [auke-jan.h.kok@intel.com])
-AM_INIT_AUTOMAKE([])
+AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_FILES([Makefile])
 
 # Checks for programs.

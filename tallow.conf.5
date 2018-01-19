@@ -25,7 +25,10 @@ This file is read on startup by the tallow(1) daemon, and can be used to provide
 \fBexpires\fR=\fB<int>\fR The number of seconds that IP addresses are blocked for\. Note that due to the implementation, IP addresses may be blocked for much longer than this period\. If IP addresses are seen, but not blocked within this period, they are also removed from the watch list\. Defaults to 3600s\.
 .
 .P
-\fBwhitelist\fR=\fB<ipv4 address>\fR Specify an IP address that should never be blocked\. Multiple IP addresses can be included by repeating the \fBwhitelist\fR option several times\. By default, only 127\.0\.0\.1 is whitelisted\.
+\fBwhitelist\fR=\fB<ip address|pattern>\fR Specify an IP address or \fBpattern\fR that should never be blocked\. Multiple IP addresses can be included by repeating the \fBwhitelist\fR option several times\. By default, only 127\.0\.0\.1 is whitelisted\.
+.
+.P
+If the last character of the listed ip adress is a \fB\.\fR or a \fB:\fR, then the matching is only performed on the leftmost characters of an IP address against the whitelist entry\. For instance, if you whitelist \fB10\.\fR then all IP addresses in the \fB10/8\fR subnet mask will match this whitelist entry and never be blocked\.
 .
 .P
 \fBipv6\fR=\fB<0|1>\fR Enable of disable ipv6 (ip6tables) support\. Ipv6 is disabled automatically on systems that do not appear to have ipv6 support and enabled when ipv6 is present\. Use this option to explicitly disable ipv6 support if your system does not have ipv6 or is missing ip6tables\. Even with ipv6 disabled, tallow will track and log ipv6 addresses\.
