@@ -56,7 +56,7 @@ struct pattern_struct {
 	pcre *re;
 };
 
-#define PATTERN_COUNT 9
+#define PATTERN_COUNT 10
 static struct pattern_struct patterns[PATTERN_COUNT] = {
 	{ 0, 0.4, "MESSAGE=Failed .* for .* from ([0-9a-z:.]+) port \\d+ ssh2", NULL},
 	{ 0, 0.4, "MESSAGE=error: PAM: Authentication failure for .* from ([0-9a-z:.]+)", NULL},
@@ -66,6 +66,7 @@ static struct pattern_struct patterns[PATTERN_COUNT] = {
 	{15, 0.6, "MESSAGE=Bad protocol version identification .* from ([0-9a-z:.]+)", NULL},
 	{15, 0.6, "MESSAGE=Connection closed by authenticating user .* ([0-9a-z:.]+) port \\d+", NULL},
 	{15, 0.6, "MESSAGE=Received disconnect from ([0-9a-z:.]+) port .*\\[preauth\\]", NULL},
+	{15, 0.6, "MESSAGE=Connection closed by ([0-9a-z:.]+) port .*\\[preauth\\]", NULL},
 	{60, 0.6, "MESSAGE=Unable to negotiate with ([0-9a-z:.]+) port \\d+: no matching key exchange method found.", NULL}
 };
 
