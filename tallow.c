@@ -284,23 +284,7 @@ static void find(const char *ip, float weight, int instant_block)
 	return;
 }
 
-static void sig(int u __attribute__ ((unused)))
-{
-	fprintf(stderr, "Exiting on request.\n");
-	sd_journal_close(j);
-
-	struct tallow_struct *s = head;
-	while (s) {
-		struct tallow_struct *n = NULL;
-
-		free(s->ip);
-		n = s;
-		s = s->next;
-		free(n);
-	}
-	exit(EXIT_SUCCESS);
-}
-
+#ifdef DEBUG
 static void sigusr1(int u __attribute__ ((unused)))
 {
 	fprintf(stderr, "Dumping score list on request:\n");
@@ -310,6 +294,7 @@ static void sigusr1(int u __attribute__ ((unused)))
 		s = s->next;
 	}
 }
+#endif
 
 static void prune(void)
 {
@@ -354,20 +339,17 @@ int main(void)
 {
 	int r;
 	FILE *f;
-	struct sigaction s;
 	int timeout = 60;
 
 	strcpy(ipt_path, "/usr/sbin");
 
-	memset(&s, 0, sizeof(struct sigaction));
-	s.sa_handler = sig;
-	sigaction(SIGHUP, &s, NULL);
-	sigaction(SIGTERM, &s, NULL);
-	sigaction(SIGINT, &s, NULL);
+#ifdef DEBUG
+	struct sigaction s;
 
 	memset(&s, 0, sizeof(struct sigaction));
 	s.sa_handler = sigusr1;
 	sigaction(SIGUSR1, &s, NULL);
+#endif
 
 	if (access("/proc/sys/net/ipv6", R_OK | X_OK) == 0)
 		has_ipv6 = 1;

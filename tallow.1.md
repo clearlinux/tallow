@@ -43,7 +43,8 @@ configuration is done through the tallow.conf(5) config file.
 ## SIGNALS
 
 The `USR1` signal causes `tallow` to print out it's internal tracking
-table of IP addresses.
+table of IP addresses. This requires that tallow is compiled with
+the `-DDEBUG=1` symbol passed to the compiler.
 
 ## SEE ALSO
 
