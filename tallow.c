@@ -434,6 +434,9 @@ int main(void)
 		if (r == SD_JOURNAL_INVALIDATE) {
 			fprintf(stderr, "Journal was rotated, resetting\n");
 			sd_journal_seek_tail(j);
+		} else if (r == SD_JOURNAL_NOP) {
+			dbg("Timeout reached, waiting again\n");
+			continue;
 		}
 
 		while (sd_journal_next(j) != 0) {
@@ -441,7 +444,7 @@ int main(void)
 
 			if (sd_journal_get_data(j, "MESSAGE", &d, &l) < 0) {
 				fprintf(stderr, "Failed to read message field: %s\n", strerror(-r));
-				continue;
+				break;
 			}
 
 			m = strndup(d, l+1);

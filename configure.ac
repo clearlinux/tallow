@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.64])
-AC_INIT([tallow], [10], [auke-jan.h.kok@intel.com])
+AC_INIT([tallow], [11], [auke-jan.h.kok@intel.com])
 AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_FILES([Makefile])
 
