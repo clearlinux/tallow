@@ -31,7 +31,7 @@ This file is read on startup by the tallow(1) daemon, and can be used to provide
 If the last character of the listed ip adress is a \fB\.\fR or a \fB:\fR, then the matching is only performed on the leftmost characters of an IP address against the whitelist entry\. For instance, if you whitelist \fB10\.\fR then all IP addresses in the \fB10/8\fR subnet mask will match this whitelist entry and never be blocked\.
 .
 .P
-\fBipv6\fR=\fB<0|1>\fR Enable of disable ipv6 (ip6tables) support\. Ipv6 is disabled automatically on systems that do not appear to have ipv6 support and enabled when ipv6 is present\. Use this option to explicitly disable ipv6 support if your system does not have ipv6 or is missing ip6tables\. Even with ipv6 disabled, tallow will track and log ipv6 addresses\.
+\fBipv6\fR=\fB<0|1>\fR Enable or disable ipv6 (ip6tables) support\. Ipv6 is disabled automatically on systems that do not appear to have ipv6 support and enabled when ipv6 is present\. Use this option to explicitly disable ipv6 support if your system does not have ipv6 or is missing ip6tables\. Even with ipv6 disabled, tallow will track and log ipv6 addresses\.
 .
 .P
 \fBnocreate\fR=\fB<0|1>\fR Disable the creation of iptables rules and ipset sets\. By default, tallow will create new iptables(1) and ip6tables(1) rules when needed automatically\. If set to \fB1\fR, \fBtallow(1)\fR will not create any new iptables rules or ipset sets to work\. You should create them manually before tallow starts up and remove them afterwards\. To create them manually, you can use the following commands:
