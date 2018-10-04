@@ -58,14 +58,14 @@ struct pattern_struct {
 
 #define PATTERN_COUNT 10
 static struct pattern_struct patterns[PATTERN_COUNT] = {
-	{ 0, 0.3, "MESSAGE=Failed .* for .* from ([0-9a-z:.]+) port \\d+ ssh2", NULL},
-	{ 0, 0.3, "MESSAGE=error: PAM: Authentication failure for .* from ([0-9a-z:.]+)", NULL},
-	{15, 0.3, "MESSAGE=Invalid user .* from ([0-9a-z:.]+) port \\d+", NULL},
-	{15, 0.3, "MESSAGE=Did not receive identification string from ([0-9a-z:.]+) port \\d+", NULL},
+	{ 0, 0.2, "MESSAGE=Failed .* for .* from ([0-9a-z:.]+) port \\d+ ssh2", NULL},
+	{ 0, 0.2, "MESSAGE=error: PAM: Authentication failure for .* from ([0-9a-z:.]+)", NULL},
+	{10, 0.2, "MESSAGE=Invalid user .* from ([0-9a-z:.]+) port \\d+", NULL},
+	{10, 0.3, "MESSAGE=Did not receive identification string from ([0-9a-z:.]+) port \\d+", NULL},
 	{15, 0.4, "MESSAGE=Bad protocol version identification .* from ([0-9a-z:.]+)", NULL},
 	{15, 0.4, "MESSAGE=Connection closed by authenticating user .* ([0-9a-z:.]+) port \\d+", NULL},
-	{15, 0.4, "MESSAGE=Received disconnect from ([0-9a-z:.]+) port .*\\[preauth\\]", NULL},
-	{15, 0.4, "MESSAGE=Connection closed by ([0-9a-z:.]+) port .*\\[preauth\\]", NULL},
+	{10, 0.3, "MESSAGE=Received disconnect from ([0-9a-z:.]+) port .*\\[preauth\\]", NULL},
+	{10, 0.3, "MESSAGE=Connection closed by ([0-9a-z:.]+) port .*\\[preauth\\]", NULL},
 	{30, 0.5, "MESSAGE=Failed .* for root from ([0-9a-z:.]+) port \\d+ ssh2", NULL},
 	{60, 0.6, "MESSAGE=Unable to negotiate with ([0-9a-z:.]+) port \\d+: no matching key exchange method found.", NULL}
 };
