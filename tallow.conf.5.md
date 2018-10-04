@@ -43,7 +43,7 @@ address against the whitelist entry. For instance, if you whitelist
 whitelist entry and never be blocked.
 
 `ipv6`=`<0|1>`
-Enable of disable ipv6 (ip6tables) support. Ipv6 is disabled
+Enable or disable ipv6 (ip6tables) support. Ipv6 is disabled
 automatically on systems that do not appear to have ipv6 support
 and enabled when ipv6 is present. Use this option to explicitly
 disable ipv6 support if your system does not have ipv6 or is
