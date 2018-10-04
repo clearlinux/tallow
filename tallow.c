@@ -394,8 +394,11 @@ int main(void)
 	if (!has_ipv6)
 		fprintf(stdout, "ipv6 support disabled.\n");
 
-	if (!whitelist)
+	if (!whitelist) {
 		whitelist_add("127.0.0.1");
+		whitelist_add("192.168.");
+		whitelist_add("10.");
+	}
 
 	r = sd_journal_open(&j, SD_JOURNAL_LOCAL_ONLY);
 	if (r < 0) {

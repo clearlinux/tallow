@@ -33,8 +33,10 @@ watch list. Defaults to 3600s.
 `whitelist`=`<ip address|pattern>`
 Specify an IP address or `pattern` that should never be
 blocked. Multiple IP addresses can be included by repeating the
-`whitelist` option several times. By default, only 127.0.0.1 is
-whitelisted.
+`whitelist` option several times. By default, 127.0.0.1, 192.168., and
+10. are whitelisted. If you create a manual whitelist, you must include
+these entries if you want to continue them to be whitelisted as
+well, otherwise they will be omitted from the whitelist.
 
 If the last character of the listed ip adress is a `.` or a `:`, then
 the matching is only performed on the leftmost characters of an IP
