@@ -3,7 +3,8 @@
 
 AC_PREREQ([2.64])
 AC_INIT([tallow], [16], [auke-jan.h.kok@intel.com])
-AM_INIT_AUTOMAKE([foreign])
+AM_INIT_AUTOMAKE([foreign -Wall -Werror -Wno-portability silent-rules subdir-objects color-tests
+	no-dist-gzip dist-xz])
 AC_CONFIG_FILES([Makefile])
 
 # Checks for programs.

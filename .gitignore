@@ -10,7 +10,7 @@ depcomp
 install-sh
 missing
 tallow
-tallow-*.tar.gz
+tallow-*.tar.*
 tallow-*/
 *.o
 tallow.service

@@ -10,7 +10,12 @@ systemdsystemunitdir = @SYSTEMD_SYSTEMUNITDIR@
 systemdsystemunit_DATA = data/tallow.service
 
 sbin_PROGRAMS = tallow
-tallow_SOURCES = tallow.c json.c json.h data.c data.h
+tallow_SOURCES = \
+	src/tallow.c \
+	src/json.c \
+	src/json.h \
+	src/data.c \
+	src/data.h
 tallow_LDADD = $(JSON_C_LIBS) $(PCRE_LIBS) $(LIBSYSTEMD_LIBS)
 
 pkgdata_DATA = data/sshd.json
