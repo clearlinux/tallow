@@ -16,6 +16,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <sys/time.h>
+#include <malloc.h>
 
 #include <pcre.h>
 
@@ -168,4 +169,7 @@ void prune(int expires)
 		p = s;
 		s = s->next;
 	}
+
+	/* return some memory */
+	malloc_trim(0);
 }
