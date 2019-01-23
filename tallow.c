@@ -1,7 +1,7 @@
 /*
  * tallow.c - IP block sshd login abuse
  *
- * (C) Copyright 2015 Intel Corporation
+ * (C) Copyright 2015-2019 Intel Corporation
  * Authors:
  *     Auke Kok <auke-jan.h.kok@intel.com>
  *
@@ -20,55 +20,15 @@
 #include <unistd.h>
 #include <limits.h>
 #include <sys/time.h>
-#include <pcre.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <linux/limits.h>
 
+#include <pcre.h>
 #include <systemd/sd-journal.h>
 
-#ifdef DEBUG
-#define dbg(args...) fprintf(stderr, ##args)
-#else
-#define dbg(args...) do {} while (0)
-#endif
-
-struct tallow_struct {
-	char *ip;
-	float score;
-	struct timeval time;
-	struct tallow_struct *next;
-	bool blocked;
-};
-
-static struct tallow_struct *head;
-
-struct whitelist_struct {
-	char *ip;
-	size_t len;
-	struct whitelist_struct *next;
-};
-
-static struct whitelist_struct *whitelist;
-
-#define FILTER_STRING "SYSLOG_IDENTIFIER=sshd"
-struct pattern_struct {
-	int instant_block;
-	float weight;
-	char *pattern;
-	pcre *re;
-};
-
-#define PATTERN_COUNT 10
-static struct pattern_struct patterns[PATTERN_COUNT] = {
-	{ 0, 0.2, "MESSAGE=Failed .* for .* from ([0-9a-z:.]+) port \\d+ ssh2", NULL},
-	{ 0, 0.2, "MESSAGE=error: PAM: Authentication failure for .* from ([0-9a-z:.]+)", NULL},
-	{10, 0.2, "MESSAGE=Invalid user .* from ([0-9a-z:.]+) port \\d+", NULL},
-	{10, 0.3, "MESSAGE=Did not receive identification string from ([0-9a-z:.]+) port \\d+", NULL},
-	{15, 0.4, "MESSAGE=Bad protocol version identification .* from ([0-9a-z:.]+)", NULL},
-	{15, 0.4, "MESSAGE=Connection closed by authenticating user .* ([0-9a-z:.]+) port \\d+", NULL},
-	{10, 0.3, "MESSAGE=Received disconnect from ([0-9a-z:.]+) port .*\\[preauth\\]", NULL},
-	{10, 0.3, "MESSAGE=Connection closed by ([0-9a-z:.]+) port .*\\[preauth\\]", NULL},
-	{30, 0.5, "MESSAGE=Failed .* for root from ([0-9a-z:.]+) port \\d+ ssh2", NULL},
-	{60, 0.6, "MESSAGE=Unable to negotiate with ([0-9a-z:.]+) port \\d+: no matching key exchange method found.", NULL}
-};
+#include "json.h"
+#include "data.h"
 
 #define MAX_OFFSETS 30
 
@@ -143,10 +103,9 @@ static void setup(void)
 	}
 }
 
-static void block(struct tallow_struct *s, int instant_block)
+static void block(struct block_struct *s, int instant_block)
 {
 	setup();
-
 
 	if (strchr(s->ip, ':')) {
 		if (has_ipv6) {
@@ -175,38 +134,10 @@ static void block(struct tallow_struct *s, int instant_block)
 	}
 }
 
-static void whitelist_add(char *ip)
+void find(const char *ip, float weight, int instant_block)
 {
-	struct whitelist_struct *w = whitelist;
-	struct whitelist_struct *n;
-
-	while (w && w->next)
-		w = w->next;
-
-	n = calloc(1, sizeof(struct whitelist_struct));
-	if (!n) {
-		fprintf(stderr, "Out of memory.\n");
-		exit(EXIT_FAILURE);
-	}
-
-	n->ip = strdup(ip);
-	size_t l = strlen(ip);
-	if ((ip[l-1] == '.') || (ip[l-1] == ':'))
-		n->len = l;
-	else
-		n->len = -1;
-
-	if (!whitelist)
-		whitelist = n;
-	else
-		w->next = n;
-}
-
-static void find(const char *ip, float weight, int instant_block)
-{
-	struct tallow_struct *s = head;
-	struct tallow_struct *n;
-	struct whitelist_struct *w = whitelist;
+	struct block_struct *s = blocks;
+	struct block_struct *n;
 
 	if (!ip)
 		return;
@@ -219,17 +150,8 @@ static void find(const char *ip, float weight, int instant_block)
 	if (strspn(ip, "0123456789abcdef:.") != strlen(ip))
 		return;
 
-	/* whitelist */
-	while (w) {
-		if (w->len > 0) {
-			if (!strncmp(w->ip, ip, w->len))
-				return;
-		} else {
-			if (!strcmp(w->ip, ip))
-				return;
-		}
-		w = w->next;
-	}
+	if (whitelist_find(ip))
+		return;
 
 	/* walk and update entry */
 	while (s) {
@@ -258,14 +180,14 @@ static void find(const char *ip, float weight, int instant_block)
 	}
 
 	/* append */
-	n = calloc(1, sizeof(struct tallow_struct));
+	n = calloc(1, sizeof(struct block_struct));
 	if (!n) {
 		fprintf(stderr, "Out of memory.\n");
 		exit(EXIT_FAILURE);
 	}
 
-	if (!head)
-		head = n;
+	if (!blocks)
+		blocks = n;
 	else
 		s->next = n;
 
@@ -288,7 +210,7 @@ static void find(const char *ip, float weight, int instant_block)
 static void sigusr1(int u __attribute__ ((unused)))
 {
 	fprintf(stderr, "Dumping score list on request:\n");
-	struct tallow_struct *s = head;
+	struct block_struct *s = blocks;
 	while (s) {
 		fprintf(stderr, "%ld %s %1.3f\n", s->time.tv_sec, s->ip, s->score);
 		s = s->next;
@@ -296,44 +218,6 @@ static void sigusr1(int u __attribute__ ((unused)))
 }
 #endif
 
-static void prune(void)
-{
-	struct tallow_struct *s = head;
-	struct tallow_struct *p;
-	struct timeval tv;
-
-	(void) gettimeofday(&tv, NULL);
-	p = NULL;
-
-	while (s) {
-		/*
-		 * Expire all records, but if they are blocked, make sure to
-		 * expire them *before* the ipset rule expires, otherwise
-		 * you might get an IP to bypass checks.
-		 */
-		time_t age = tv.tv_sec - s->time.tv_sec;
-		if ((age > expires) ||
-		    ((s->blocked) && (age > expires / 2))) {
-			dbg("Expired record for %s\n", s->ip);
-			if (p) {
-				p->next = s->next;
-				free(s->ip);
-				free(s);
-				s = p->next;
-				continue;
-			} else {
-				head = s->next;
-				free(s->ip);
-				free(s);
-				s = head;
-				p = NULL;
-				continue;
-			}
-		}
-		p = s;
-		s = s->next;
-	}
-}
 
 int main(void)
 {
@@ -341,9 +225,13 @@ int main(void)
 	FILE *f;
 	int timeout = 60;
 
+	json_load_patterns();
+
 	strcpy(ipt_path, "/usr/sbin");
 
 #ifdef DEBUG
+	fprintf(stderr, "Debug output enabled. Send SIGUSR1 to dump internal state table\n");
+
 	struct sigaction s;
 
 	memset(&s, 0, sizeof(struct sigaction));
@@ -354,7 +242,7 @@ int main(void)
 	if (access("/proc/sys/net/ipv6", R_OK | X_OK) == 0)
 		has_ipv6 = 1;
 
-	f = fopen("/etc/tallow.conf", "r");
+	f = fopen(SYSCONFDIR "/tallow.conf", "r");
 	if (f) {
 		char buf[256];
 		char *key;
@@ -406,9 +294,14 @@ int main(void)
 		exit(EXIT_FAILURE);
 	}
 
+	/* add all filters */
+	struct filter_struct *flt = filters;
+	while (flt) {
+		sd_journal_add_match(j, flt->filter, 0);
+		flt = flt->next;
+	}
 
-	/* ffwd journal */
-	sd_journal_add_match(j, FILTER_STRING, 0);
+	/* go to the tail and wait */
 	r = sd_journal_seek_tail(j);
 	sd_journal_wait(j, (uint64_t) 0);
 	dbg("sd_journal_seek_tail() returned %d\n", r);
@@ -416,18 +309,7 @@ int main(void)
 		r++;
 	dbg("Forwarded through %d items in the journal to reach the end\n", r);
 
-	fprintf(stderr, "Started\n");
-
-	for (int i = 0; i < PATTERN_COUNT; i++) {
-		int err;
-		const char *pcre_err;
-		patterns[i].re = pcre_compile(patterns[i].pattern, 0, &pcre_err, &err, NULL);
-		if (!patterns[i].re) {
-			fprintf(stderr, "PCRE compilation failed. Pattern %d, offset %d: %s\n",
-				i, err, pcre_err);
-			exit(EXIT_FAILURE);
-		}
-	}
+	fprintf(stderr, PACKAGE_STRING " Started\n");
 
 	for (;;) {
 		const void *d;
@@ -453,25 +335,28 @@ int main(void)
 			m = strndup(d, l+1);
 			m[l] = '\0';
 
-			for (int i = 0; i < PATTERN_COUNT; i++) {
+			struct pattern_struct *pat = patterns;
+			while (pat) {
 				int off[MAX_OFFSETS];
-				int ret = pcre_exec(patterns[i].re, NULL, m, l, 0, 0, off, MAX_OFFSETS);
+				int ret = pcre_exec(pat->re, NULL, m, l, 0, 0, off, MAX_OFFSETS);
 				if (ret == 2) {
 					const char *s;
 					ret = pcre_get_substring(m, off, 2, 1, &s);
 					if (ret > 0) {
-						dbg("%s == %s\n", s, patterns[i].pattern);
-						find(s, patterns[i].weight, patterns[i].instant_block);
+						dbg("%s == %s\n", s, pat->pattern);
+						find(s, pat->weight, pat->instant_block);
 						pcre_free_substring(s);
 					}
 				}
+
+				pat = pat->next;
 			}
 
 			free(m);
 
 		}
 
-		prune();
+		prune(expires);
 	}
 
 	sd_journal_close(j);

@@ -12,7 +12,7 @@ missing
 tallow
 tallow-*.tar.gz
 tallow-*/
-tallow.o
+*.o
 tallow.service
 *~
 DEADJOE

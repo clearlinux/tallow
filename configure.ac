@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.64])
-AC_INIT([tallow], [14], [auke-jan.h.kok@intel.com])
+AC_INIT([tallow], [15], [auke-jan.h.kok@intel.com])
 AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_FILES([Makefile])
 
@@ -11,6 +11,7 @@ AC_PROG_CC
 AC_PROG_INSTALL
 
 PKG_CHECK_MODULES(PCRE, libpcre)
+PKG_CHECK_MODULES(JSON_C, json-c)
 PKG_CHECK_MODULES(LIBSYSTEMD, libsystemd,, [PKG_CHECK_MODULES(LIBSYSTEMD, libsystemd-journal)])
 AC_SUBST(LIBSYSTEMD_CFLAGS)
 AC_SUBST(LIBSYSTEMD_LIBS)
@@ -28,5 +29,5 @@ fi
 AC_CHECK_HEADERS([stdlib.h stdio.h string.h stdarg.h limits.h sys/time.h])
 
 AC_OUTPUT([
-tallow.service
+data/tallow.service
 ])

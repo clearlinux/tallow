@@ -1,0 +1,57 @@
+[
+  {
+    "filter": "SYSLOG_IDENTIFIER=sshd",
+    "items": [
+      {
+        "ban": 0,
+        "score": 0.2,
+        "pattern": "MESSAGE=Failed .* for .* from ([0-9a-z:.]+) port \\d+ ssh2"
+      },
+      {
+        "ban": 0,
+        "score": 0.2,
+        "pattern": "MESSAGE=error: PAM: Authentication failure for .* from ([0-9a-z:.]+)"
+      },
+      {
+        "ban": 10,
+        "score": 0.2,
+        "pattern": "MESSAGE=Invalid user .* from ([0-9a-z:.]+) port \\d+"
+      },
+      {
+        "ban": 10,
+        "score": 0.3,
+        "pattern": "MESSAGE=Did not receive identification string from ([0-9a-z:.]+) port \\d+"
+      },
+      {
+        "ban": 15,
+        "score": 0.4,
+        "pattern": "MESSAGE=Bad protocol version identification .* from ([0-9a-z:.]+)"
+      },
+      {
+        "ban": 15,
+        "score": 0.4,
+        "pattern": "MESSAGE=Connection closed by authenticating user .* ([0-9a-z:.]+) port \\d+"
+      },
+      {
+        "ban": 10,
+        "score": 0.3,
+        "pattern": "MESSAGE=Received disconnect from ([0-9a-z:.]+) port .*\\[preauth\\]"
+      },
+      {
+        "ban": 10,
+        "score": 0.3,
+        "pattern": "MESSAGE=Connection closed by ([0-9a-z:.]+) port .*\\[preauth\\]"
+      },
+      {
+        "ban": 30,
+        "score": 0.5,
+        "pattern": "MESSAGE=Failed .* for root from ([0-9a-z:.]+) port \\d+ ssh2"
+      },
+      {
+        "ban": 60,
+        "score": 0.6,
+        "pattern": "MESSAGE=Unable to negotiate with ([0-9a-z:.]+) port \\d+: no matching key exchange method found."
+      }
+    ]
+  }
+]
