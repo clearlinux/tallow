@@ -19,19 +19,19 @@ EXTRA_DIST = \
 	AUTHORS COPYING INSTALL README.md \
 	data/tallow.service.in \
 	data/sshd.json \
-	tallow.conf.5.md \
-	tallow.1.md
+	man/tallow.conf.5.md \
+	man/tallow.1.md
 
-dist_man_MANS = tallow.1 tallow.conf.5
+dist_man_MANS = man/tallow.1 man/tallow.conf.5
 
 dist_doc_DATA = tallow.conf
 
 DISTCHECK_CONFIGURE_FLAGS = \
 	--with-systemdsystemunitdir=$(DESTDIR)$(SYSTEMDSYSTEMUNITDIR)
 
-docs: tallow.1 tallow.conf.5
-tallow.conf.5: tallow.conf.5.md
-	ronn -r tallow.conf.5.md --pipe > tallow.conf.5
+docs: $(dist_man_MANS)
+man/%.5: man/%.5.md
+	ronn -r $< --pipe > $@
 
-tallow.1: tallow.1.md
-	ronn -r tallow.1.md --pipe > tallow.1
+man/%.1: man/%.1.md
+	ronn -r $< --pipe > $@
