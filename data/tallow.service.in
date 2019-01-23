@@ -6,6 +6,7 @@ Description=Tallow Service
 ExecStart=@prefix@/sbin/tallow
 Restart=always
 RestartSec=3
+Nice=10
 
 [Install]
 WantedBy=network.target
