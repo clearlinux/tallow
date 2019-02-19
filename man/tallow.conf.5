@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "TALLOW" "5" "January 2019" "" ""
+.TH "TALLOW" "5" "February 2019" "" ""
 .
 .SH "NAME"
 \fBtallow\fR
@@ -40,10 +40,10 @@ If the last character of the listed ip adress is a \fB\.\fR or a \fB:\fR, then t
 .
 .nf
 
-  iptables \-t filter \-I INPUT \-m set \-\-match\-set tallow src \-j DROP
+  iptables \-t filter \-I INPUT 1 \-m set \-\-match\-set tallow src \-j DROP
   ipset create tallow hash:ip family inet timeout 3600
 
-  ip6tables \-t filter \-I INPUT \-m set \-\-match\-set tallow6 src \-j DROP
+  ip6tables \-t filter \-I INPUT 1 \-m set \-\-match\-set tallow6 src \-j DROP
   ipset create tallow6 hash:ip family inet6 timeout 3600
 .
 .fi
