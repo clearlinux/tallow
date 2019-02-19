@@ -185,7 +185,7 @@ static int json_load_dir(const char *dir)
 
 				struct stat st;
 				if (stat(sp, &st) == 0) {
-					dbg("Skipped %s\n", sp);
+					dbg("Skipped " SYSCONFDIR "/" PACKAGE_NAME "/%s\n", entry->d_name);
 					free(sp);
 					continue;
 				}
