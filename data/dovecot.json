@@ -1,0 +1,12 @@
+[
+  {
+    "filter": "SYSLOG_IDENTIFIER=auth",
+    "items": [
+      {
+        "ban": 50,
+        "score": 0.6,
+        "pattern": "MESSAGE=pam_unix[(]dovecot:auth[)]: authentication failure; logname= uid=0 euid=0 tty=dovecot ruser=.*@.* rhost=([0-9a-z:.]+)"
+      }
+    ]
+  }
+]
