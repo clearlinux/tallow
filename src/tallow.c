@@ -224,6 +224,7 @@ int main(void)
 	int r;
 	FILE *f;
 	int timeout = 60;
+	long long int last_timestamp = 0;
 
 	json_load_patterns();
 
@@ -312,8 +313,8 @@ int main(void)
 	fprintf(stderr, PACKAGE_STRING " Started\n");
 
 	for (;;) {
-		const void *d;
-		size_t l;
+		const void *d, *dt;
+		size_t l, dl;
 
 		r = sd_journal_wait(j, (uint64_t) timeout * 1000000);
 		if (r == SD_JOURNAL_INVALIDATE) {
@@ -326,6 +327,18 @@ int main(void)
 
 		while (sd_journal_next(j) != 0) {
 			char *m;
+
+			/*
+			 * discard messages older than ones we've already seen before
+			 * this happens when the journal rotates - we get replayed events
+			 */
+			if (sd_journal_get_data(j, "_SOURCE_REALTIME_TIMESTAMP", &dt, &dl) == 0) {
+				long long int lt = atoi(dt + strlen("_SOURCE_REALTIME_TIMESTAMP="));
+				if (lt > last_timestamp)
+					last_timestamp = lt;
+				else if (lt < last_timestamp)
+					continue;
+			}
 
 			if (sd_journal_get_data(j, "MESSAGE", &d, &l) < 0) {
 				fprintf(stderr, "Failed to read message field: %s\n", strerror(-r));
