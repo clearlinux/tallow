@@ -36,7 +36,7 @@ static bool g_filter, g_ban, g_score, g_pattern = false;
 
 static int json_parse(json_object *ob)
 {
-	int count = 0;
+	int i, count = 0;
 	bool l_filter, l_ban, l_score, l_pattern = false;
 
 	json_object_object_foreach(ob, key, val) {
@@ -81,7 +81,7 @@ static int json_parse(json_object *ob)
 			ob = json_object_object_get(ob, key);
 			int len = json_object_array_length(ob);
 			json_object *val;
-			for (int i = 0; i < len; i++) {
+			for (i = 0; i < len; i++) {
 				val = json_object_array_get_idx(ob, i);
 				count += json_parse(val);
 			}
@@ -119,7 +119,7 @@ static int json_parse(json_object *ob)
 
 static int json_load_file(const char* file)
 {
-	int count = 0;
+	int i, count = 0;
 	char *json;
 	int fd;
 	struct stat st;
@@ -134,7 +134,7 @@ static int json_load_file(const char* file)
 	if (json_object_is_type(obj,json_type_array)) {
 		int len = json_object_array_length(obj);
 		json_object *val;
-		for (int i = 0; i < len; i++) {
+		for (i = 0; i < len; i++) {
 			val = json_object_array_get_idx(obj, i);
 			count += json_parse(val);
 		}
