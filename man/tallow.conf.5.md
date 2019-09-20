@@ -20,8 +20,9 @@ tallow will operate with built-in defaults.
 ## OPTIONS
 
 `ipt_path`=`<string>`
-Specifies the location of the ipset(1), iptables(1) or ip6tables(1)
-program. By default, tallow will look in "/usr/sbin" for them.
+Specifies the location of the ipset(1) program and iptables(1), 
+ip6tables(1), or firewall-cmd(1) programs. By default, tallow will 
+look in "/usr/sbin" for them.
 
 `expires`=`<int>`
 The number of seconds that IP addresses are blocked for. Note that
@@ -52,13 +53,14 @@ disable ipv6 support if your system does not have ipv6 or is
 missing ip6tables. Even with ipv6 disabled, tallow will track
 and log ipv6 addresses.
 
-`nocreate`=`<0|1>`
-Disable the creation of iptables rules and ipset sets. By default,
-tallow will create new iptables(1) and ip6tables(1) rules when needed
-automatically. If set to `1`, `tallow(1)` will not create any new
-iptables rules or ipset sets to work. You should create them manually
-before tallow starts up and remove them afterwards. To create them
-manually, you can use the following commands:
+`nocreate`=`<0|1>` Disable the creation of firewall rules and ipset sets. By
+default, tallow will create new firewall-cmd(1) or iptables(1) and ip6tables(1)
+rules when needed automatically. If set to `1`, `tallow(1)` will not create any
+new firewall DROP rules or ipset sets that are needed work. You should create
+them manually before tallow starts up and remove them afterwards using the sets
+of commands below. 
+
+Use the following commands if you're using iptables(1):
 
   ```
   ipset create tallow hash:ip family inet timeout 3600
@@ -68,6 +70,17 @@ manually, you can use the following commands:
   ip6tables -t filter -I INPUT 1 -m set --match-set tallow6 src -j DROP
   ```
 
+Use the following commands if you're using firewalld(1):
+
+```
+  firewall-cmd --permanent --new-ipset=tallow --type=hash:ip --family=inet --option=timeout=3600
+  firewall-cmd --permanent --direct --add-rule ipv4 filter INPUT 1 -m set --match-set tallow src -j DROP
+  
+  firewall-cmd --permanent --new-ipset=tallow6 --type=hash:ip --family=inet6 --option=timeout=3600
+  firewall-cmd --permanent --direct --add-rule ipv6 filter INPUT 1 -m set --match-set tallow6 src -j DROP
+  
+  ```
+
 ## SEE ALSO
 
 tallow(1)
@@ -75,4 +88,3 @@ tallow(1)
 ## AUTHOR
 
 Auke Kok <auke-jan.h.kok@intel.com>
-

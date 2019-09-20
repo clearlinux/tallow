@@ -11,6 +11,8 @@
  * of the License.
  */
 
+#define _GNU_SOURCE
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -66,6 +68,26 @@ static void ext_ignore(char *fmt, ...)
 	__attribute__((unused)) int ret = system(cmd);
 }
 
+static void reset_rules(void)
+{
+	/* reset all rules in case the running fw changes */
+	ext_ignore("%s/firewall-cmd --permanent --direct --quiet --remove-rule ipv4 filter INPUT 1 -m set --match-set tallow src -j DROP", ipt_path);
+	ext_ignore("%s/firewall-cmd --quiet --permanent --delete-ipset=tallow", ipt_path);
+
+	/* delete iptables ref to set before the ipset! */
+	ext_ignore("%s/iptables -t filter -D INPUT -m set --match-set tallow src -j DROP 2> /dev/null", ipt_path);
+	ext_ignore("%s/ipset destroy tallow 2> /dev/null", ipt_path);
+
+	if (has_ipv6) {
+		ext_ignore("%s/firewall-cmd --permanent --direct --quiet --remove-rule ipv6 filter INPUT 1 -m set --match-set tallow6 src -j DROP", ipt_path);
+		ext_ignore("%s/firewall-cmd --permanent --delete-ipset=tallow6 --quiet", ipt_path);	
+		
+		/* delete iptables ref to set before the ipset! */
+		ext_ignore("%s/ip6tables -t filter -D INPUT -m set --match-set tallow6 src -j DROP 2> /dev/null", ipt_path);
+		ext_ignore("%s/ipset destroy tallow6 2> /dev/null", ipt_path);		
+	}
+}
+
 static void setup(void)
 {
 	static bool done = false;
@@ -76,31 +98,76 @@ static void setup(void)
 	if (nocreate)
 		return;
 
-	/* init ipset and iptables */
-	/* delete iptables ref to set before the ipset! */
-	ext_ignore("%s/iptables -t filter -D INPUT -m set --match-set tallow src -j DROP 2> /dev/null", ipt_path);
-	ext_ignore("%s/ipset destroy tallow 2> /dev/null", ipt_path);
-	if (ext("%s/ipset create tallow hash:ip family inet timeout %d", ipt_path, expires)) {
-		fprintf(stderr, "Unable to create ipv4 ipset.\n");
-		exit(EXIT_FAILURE);
-	}
-	if (ext("%s/iptables -t filter -I INPUT 1 -m set --match-set tallow src -j DROP", ipt_path)) {
-		fprintf(stderr, "Unable to create iptables rule.\n");
+	/* firewalld */
+	char *fwd_path;
+	if (asprintf(&fwd_path, "%s/firewall-cmd", ipt_path) < 0)
+	{
+		fprintf(stderr, "Unable to allocate buffer for path to firewall-cmd.\n");
 		exit(EXIT_FAILURE);
 	}
 
-	if (has_ipv6) {
-		ext_ignore("%s/ip6tables -t filter -D INPUT -m set --match-set tallow6 src -j DROP 2> /dev/null", ipt_path);
-		ext_ignore("%s/ipset destroy tallow6 2> /dev/null", ipt_path);
-		if (ext("%s/ipset create tallow6 hash:ip family inet6 timeout %d", ipt_path, expires)) {
-			fprintf(stderr, "Unable to create ipv6 ipset.\n");
+	if ((access(fwd_path, X_OK) == 0) && ext("%s/firewall-cmd --state --quiet", ipt_path) == 0) {
+		fprintf(stdout, "firewalld is running and will be used by tallow.\n");
+
+		reset_rules();
+
+		/* create ipv4 rule and ipset */
+		if (ext("%s/firewall-cmd --permanent --quiet --new-ipset=tallow --type=hash:ip --family=inet --option=timeout=%d", ipt_path, expires)) {
+			fprintf(stderr, "Unable to create ipv4 ipset with firewall-cmd.\n");
 			exit(EXIT_FAILURE);
 		}
-		if (ext("%s/ip6tables -t filter -I INPUT 1 -m set --match-set tallow6 src -j DROP", ipt_path)) {
-			fprintf(stderr, "Unable to create ipt6ables rule.\n");
+		if (ext("%s/firewall-cmd --permanent --direct --quiet --add-rule ipv4 filter INPUT 1 -m set --match-set tallow src -j DROP", ipt_path)) {
+			fprintf(stderr, "Unable to create ipv4 firewalld rule.\n");
+			exit(EXIT_FAILURE);
+		}
+
+		/* create ipv6 rule and ipset */
+		if (has_ipv6) {
+			if (ext("%s/firewall-cmd --permanent --quiet --new-ipset=tallow6 --type=hash:ip --family=inet6 --option=timeout=%d", ipt_path, expires)) {
+				fprintf(stderr, "Unable to create ipv6 ipset with firewall-cmd.\n");
+				exit(EXIT_FAILURE);
+			}
+			if (ext("%s/firewall-cmd --permanent --direct --quiet --add-rule ipv6 filter INPUT 1 -m set --match-set tallow6 src -j DROP ", ipt_path)) {
+				fprintf(stderr, "Unable to create ipv6 firewalld rule.\n");
+				exit(EXIT_FAILURE);
+			}
+		}
+
+		/* reload firewalld for ipsets to load */
+		if (ext("%s/firewall-cmd --reload --quiet", ipt_path, expires)) {
+			fprintf(stderr, "Unable to reload firewalld rules.\n");
 			exit(EXIT_FAILURE);
 		}
 	}
+	/* iptables */
+	else {
+
+		reset_rules();
+
+		/* create ipv4 rule and ipset */
+		if (ext("%s/ipset create tallow hash:ip family inet timeout %d", ipt_path, expires)) {
+			fprintf(stderr, "Unable to create ipv4 ipset.\n");
+			exit(EXIT_FAILURE);
+		}
+		if (ext("%s/iptables -t filter -A INPUT -m set --match-set tallow src -j DROP", ipt_path)) {
+			fprintf(stderr, "Unable to create iptables rule.\n");
+			exit(EXIT_FAILURE);
+		}
+
+		/* create ipv6 rule and ipset */
+		if (has_ipv6) {
+			if (ext("%s/ipset create tallow6 hash:ip family inet6 timeout %d", ipt_path, expires)) {
+				fprintf(stderr, "Unable to create ipv6 ipset.\n");
+				exit(EXIT_FAILURE);
+			}
+			if (ext("%s/ip6tables -t filter -A INPUT -m set --match-set tallow6 src -j DROP", ipt_path)) {
+				fprintf(stderr, "Unable to create ipt6ables rule.\n");
+				exit(EXIT_FAILURE);
+			}
+		}
+	}
+
+	free(fwd_path);
 }
 
 static void block(struct block_struct *s, int instant_block)
