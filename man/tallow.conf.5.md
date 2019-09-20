@@ -61,11 +61,11 @@ before tallow starts up and remove them afterwards. To create them
 manually, you can use the following commands:
 
   ```
-  iptables -t filter -I INPUT 1 -m set --match-set tallow src -j DROP
   ipset create tallow hash:ip family inet timeout 3600
+  iptables -t filter -I INPUT 1 -m set --match-set tallow src -j DROP
 
-  ip6tables -t filter -I INPUT 1 -m set --match-set tallow6 src -j DROP
   ipset create tallow6 hash:ip family inet6 timeout 3600
+  ip6tables -t filter -I INPUT 1 -m set --match-set tallow6 src -j DROP
   ```
 
 ## SEE ALSO
