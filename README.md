@@ -16,7 +16,9 @@ Tallow attaches to the journal and subscribes to messages from
 /usr/sbin/sshd. The messages are matched against rules and the IP
 address is extracted from the message.  For each IP address that is
 extracted, the last timestamp and count is kept. Once the count exceeds
-a threshold, iptables is executed to set a IP-based blocking rule.
+a threshold, the offending IP address is added to an ipset and blocked 
+with a corresponding firewall rule. It will use firewalld or 
+iptables / ip6tables.
 
 The timestamp is kept for pruning. Records are pruned from the list
 if the IP address hasn't been seen by tallow for longer than the
