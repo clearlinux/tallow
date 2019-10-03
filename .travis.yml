@@ -16,6 +16,7 @@ addons:
             - valgrind
             - autoconf
             - automake
+            - libjson-c-dev
 
 script:
     - ./configure && make && make distcheck
