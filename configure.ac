@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.64])
-AC_INIT([tallow], [16], [auke-jan.h.kok@intel.com])
+AC_INIT([tallow], [17], [auke-jan.h.kok@intel.com])
 AM_INIT_AUTOMAKE([foreign -Wall -Werror -Wno-portability silent-rules subdir-objects color-tests
 	no-dist-gzip dist-xz])
 AC_CONFIG_FILES([Makefile])

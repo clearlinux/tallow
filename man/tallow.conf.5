@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "TALLOW" "5" "February 2019" "" ""
+.TH "TALLOW" "5" "October 2019" "" ""
 .
 .SH "NAME"
 \fBtallow\fR
@@ -19,7 +19,7 @@ tallow\.conf \- Tallow daemon configuration file
 This file is read on startup by the tallow(1) daemon, and can be used to provide options to the tallow daemon\. If not present, tallow will operate with built\-in defaults\.
 .
 .SH "OPTIONS"
-\fBipt_path\fR=\fB<string>\fR Specifies the location of the ipset(1), iptables(1) or ip6tables(1) program\. By default, tallow will look in "/usr/sbin" for them\.
+\fBipt_path\fR=\fB<string>\fR Specifies the location of the ipset(1) program and iptables(1), ip6tables(1), or firewall\-cmd(1) programs\. By default, tallow will look in "/usr/sbin" for them\.
 .
 .P
 \fBexpires\fR=\fB<int>\fR The number of seconds that IP addresses are blocked for\. Note that due to the implementation, IP addresses may be blocked for much longer than this period\. If IP addresses are seen, but not blocked within this period, they are also removed from the watch list\. Defaults to 3600s\.
@@ -34,17 +34,37 @@ If the last character of the listed ip adress is a \fB\.\fR or a \fB:\fR, then t
 \fBipv6\fR=\fB<0|1>\fR Enable or disable ipv6 (ip6tables) support\. Ipv6 is disabled automatically on systems that do not appear to have ipv6 support and enabled when ipv6 is present\. Use this option to explicitly disable ipv6 support if your system does not have ipv6 or is missing ip6tables\. Even with ipv6 disabled, tallow will track and log ipv6 addresses\.
 .
 .P
-\fBnocreate\fR=\fB<0|1>\fR Disable the creation of iptables rules and ipset sets\. By default, tallow will create new iptables(1) and ip6tables(1) rules when needed automatically\. If set to \fB1\fR, \fBtallow(1)\fR will not create any new iptables rules or ipset sets to work\. You should create them manually before tallow starts up and remove them afterwards\. To create them manually, you can use the following commands:
+\fBnocreate\fR=\fB<0|1>\fR Disable the creation of firewall rules and ipset sets\. By default, tallow will create new firewall\-cmd(1) or iptables(1) and ip6tables(1) rules when needed automatically\. If set to \fB1\fR, \fBtallow(1)\fR will not create any new firewall DROP rules or ipset sets that are needed work\. You should create them manually before tallow starts up and remove them afterwards using the sets of commands below\.
+.
+.P
+Use the following commands if you\'re using iptables(1):
 .
 .IP "" 4
 .
 .nf
 
-  iptables \-t filter \-I INPUT 1 \-m set \-\-match\-set tallow src \-j DROP
   ipset create tallow hash:ip family inet timeout 3600
+  iptables \-t filter \-I INPUT 1 \-m set \-\-match\-set tallow src \-j DROP
 
-  ip6tables \-t filter \-I INPUT 1 \-m set \-\-match\-set tallow6 src \-j DROP
   ipset create tallow6 hash:ip family inet6 timeout 3600
+  ip6tables \-t filter \-I INPUT 1 \-m set \-\-match\-set tallow6 src \-j DROP
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Use the following commands if you\'re using firewalld(1):
+.
+.IP "" 4
+.
+.nf
+
+  firewall\-cmd \-\-permanent \-\-new\-ipset=tallow \-\-type=hash:ip \-\-family=inet \-\-option=timeout=3600
+  firewall\-cmd \-\-permanent \-\-direct \-\-add\-rule ipv4 filter INPUT 1 \-m set \-\-match\-set tallow src \-j DROP
+
+  firewall\-cmd \-\-permanent \-\-new\-ipset=tallow6 \-\-type=hash:ip \-\-family=inet6 \-\-option=timeout=3600
+  firewall\-cmd \-\-permanent \-\-direct \-\-add\-rule ipv6 filter INPUT 1 \-m set \-\-match\-set tallow6 src \-j DROP
 .
 .fi
 .
