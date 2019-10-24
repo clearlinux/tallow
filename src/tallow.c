@@ -68,20 +68,63 @@ static void ext_ignore(char *fmt, ...)
 	__attribute__((unused)) int ret = system(cmd);
 }
 
+static bool fwd_running(void)
+{
+	static bool ret = false;
+
+	if(ret)
+	{
+		return(ret);
+	}
+
+	char *fwd_path;
+	if (asprintf(&fwd_path, "%s/firewall-cmd", ipt_path) < 0)
+	{
+		fprintf(stderr, "Unable to allocate buffer for path to firewall-cmd.\n");
+		exit(EXIT_FAILURE);
+	}
+
+	char *fwd_statecmd;
+	if (asprintf(&fwd_statecmd, "%s/firewall-cmd  --state --quiet", ipt_path) < 0)
+	{
+		fprintf(stderr, "Unable to allocate buffer for firewall-cmd state command.\n");
+		exit(EXIT_FAILURE);
+	}
+
+	if ((access(fwd_path, X_OK) == 0) && (system(fwd_statecmd) == 0))
+	{
+		fprintf(stdout, "firewalld is running and will be used by tallow.\n");
+		ret = true;
+	}
+
+	free(fwd_path);
+	free(fwd_statecmd);
+
+	return (ret);
+}
+
+
 static void reset_rules(void)
 {
 	/* reset all rules in case the running fw changes */
-	ext_ignore("%s/firewall-cmd --permanent --direct --quiet --remove-rule ipv4 filter INPUT 1 -m set --match-set tallow src -j DROP", ipt_path);
-	ext_ignore("%s/firewall-cmd --quiet --permanent --delete-ipset=tallow", ipt_path);
+	if (fwd_running())
+	{
+		ext_ignore("%s/firewall-cmd --permanent --direct --quiet --remove-rule ipv4 filter INPUT 1 -m set --match-set tallow src -j DROP", ipt_path);
+		ext_ignore("%s/firewall-cmd --quiet --permanent --delete-ipset=tallow", ipt_path);
+	}
 
 	/* delete iptables ref to set before the ipset! */
 	ext_ignore("%s/iptables -t filter -D INPUT -m set --match-set tallow src -j DROP 2> /dev/null", ipt_path);
 	ext_ignore("%s/ipset destroy tallow 2> /dev/null", ipt_path);
 
 	if (has_ipv6) {
-		ext_ignore("%s/firewall-cmd --permanent --direct --quiet --remove-rule ipv6 filter INPUT 1 -m set --match-set tallow6 src -j DROP", ipt_path);
-		ext_ignore("%s/firewall-cmd --permanent --delete-ipset=tallow6 --quiet", ipt_path);	
-		
+
+		if(fwd_running())
+		{
+			ext_ignore("%s/firewall-cmd --permanent --direct --quiet --remove-rule ipv6 filter INPUT 1 -m set --match-set tallow6 src -j DROP", ipt_path);
+			ext_ignore("%s/firewall-cmd --permanent --delete-ipset=tallow6 --quiet", ipt_path);	
+		}
+
 		/* delete iptables ref to set before the ipset! */
 		ext_ignore("%s/ip6tables -t filter -D INPUT -m set --match-set tallow6 src -j DROP 2> /dev/null", ipt_path);
 		ext_ignore("%s/ipset destroy tallow6 2> /dev/null", ipt_path);		
@@ -99,16 +142,8 @@ static void setup(void)
 		return;
 
 	/* firewalld */
-	char *fwd_path;
-	if (asprintf(&fwd_path, "%s/firewall-cmd", ipt_path) < 0)
+	if (fwd_running())
 	{
-		fprintf(stderr, "Unable to allocate buffer for path to firewall-cmd.\n");
-		exit(EXIT_FAILURE);
-	}
-
-	if ((access(fwd_path, X_OK) == 0) && ext("%s/firewall-cmd --state --quiet", ipt_path) == 0) {
-		fprintf(stdout, "firewalld is running and will be used by tallow.\n");
-
 		reset_rules();
 
 		/* create ipv4 rule and ipset */
@@ -166,8 +201,6 @@ static void setup(void)
 			}
 		}
 	}
-
-	free(fwd_path);
 }
 
 static void block(struct block_struct *s, int instant_block)
