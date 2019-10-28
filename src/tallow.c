@@ -71,20 +71,20 @@ static void ext_ignore(char *fmt, ...)
 static void reset_rules(void)
 {
 	/* reset all rules in case the running fw changes */
-	ext_ignore("%s/firewall-cmd --permanent --direct --quiet --remove-rule ipv4 filter INPUT 1 -m set --match-set tallow src -j DROP", ipt_path);
-	ext_ignore("%s/firewall-cmd --quiet --permanent --delete-ipset=tallow", ipt_path);
+	ext_ignore("%s/firewall-cmd --permanent --direct --remove-rule ipv4 filter INPUT 1 -m set --match-set tallow src -j DROP 2> /dev/null", ipt_path);
+	ext_ignore("%s/firewall-cmd --permanent --delete-ipset=tallow 2> /dev/null", ipt_path);
 
 	/* delete iptables ref to set before the ipset! */
 	ext_ignore("%s/iptables -t filter -D INPUT -m set --match-set tallow src -j DROP 2> /dev/null", ipt_path);
 	ext_ignore("%s/ipset destroy tallow 2> /dev/null", ipt_path);
 
 	if (has_ipv6) {
-		ext_ignore("%s/firewall-cmd --permanent --direct --quiet --remove-rule ipv6 filter INPUT 1 -m set --match-set tallow6 src -j DROP", ipt_path);
-		ext_ignore("%s/firewall-cmd --permanent --delete-ipset=tallow6 --quiet", ipt_path);	
+		ext_ignore("%s/firewall-cmd --permanent --direct --remove-rule ipv6 filter INPUT 1 -m set --match-set tallow6 src -j DROP 2> /dev/null", ipt_path);
+		ext_ignore("%s/firewall-cmd --permanent --delete-ipset=tallow6 2> /dev/null", ipt_path);
 		
 		/* delete iptables ref to set before the ipset! */
 		ext_ignore("%s/ip6tables -t filter -D INPUT -m set --match-set tallow6 src -j DROP 2> /dev/null", ipt_path);
-		ext_ignore("%s/ipset destroy tallow6 2> /dev/null", ipt_path);		
+		ext_ignore("%s/ipset destroy tallow6 2> /dev/null", ipt_path);
 	}
 }
 
@@ -100,9 +100,7 @@ static void setup(void)
 
 	/* firewalld */
 	char *fwd_path;
-	if (asprintf(&fwd_path, "%s/firewall-cmd", ipt_path) < 0)
-	{
-		fprintf(stderr, "Unable to allocate buffer for path to firewall-cmd.\n");
+	if (asprintf(&fwd_path, "%s/firewall-cmd", ipt_path) < 0) {
 		exit(EXIT_FAILURE);
 	}
 
@@ -138,10 +136,8 @@ static void setup(void)
 			fprintf(stderr, "Unable to reload firewalld rules.\n");
 			exit(EXIT_FAILURE);
 		}
-	}
-	/* iptables */
-	else {
-
+	} else {
+		/* iptables */
 		reset_rules();
 
 		/* create ipv4 rule and ipset */
