@@ -287,7 +287,7 @@ int main(void)
 	int r;
 	FILE *f;
 	int timeout = 60;
-	long long int last_timestamp = 0;
+	long long unsigned int last_timestamp = 0;
 
 	json_load_patterns();
 
@@ -396,11 +396,13 @@ int main(void)
 			 * this happens when the journal rotates - we get replayed events
 			 */
 			if (sd_journal_get_data(j, "_SOURCE_REALTIME_TIMESTAMP", &dt, &dl) == 0) {
-				long long int lt = atoi(dt + strlen("_SOURCE_REALTIME_TIMESTAMP="));
+				long long unsigned int lt = atoll(dt + strlen("_SOURCE_REALTIME_TIMESTAMP="));
 				if (lt > last_timestamp)
 					last_timestamp = lt;
-				else if (lt < last_timestamp)
+				else if (lt < last_timestamp) {
+					dbg("Discarding old entry: %llu - %llu\n", lt, last_timestamp);
 					continue;
+				}
 			}
 
 			if (sd_journal_get_data(j, "MESSAGE", &d, &l) < 0) {
