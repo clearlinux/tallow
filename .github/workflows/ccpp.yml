@@ -13,6 +13,8 @@ jobs:
       run: sudo apt-get install check libjson-c-dev libpcre2-dev libsystemd-dev
     - name: autogen
       run: sh autogen.sh
+    - name: configure
+      run: ./configure
     - name: make
       run: make
     - name: make check
