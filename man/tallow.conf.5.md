@@ -19,10 +19,14 @@ tallow will operate with built-in defaults.
 
 ## OPTIONS
 
+`fwcmd_path`=`<string>`
+Specifies the location of the ipset(1) firewall-cmd(1) programs. By
+default, tallow will look in "/usr/sbin" for them.
+
 `ipt_path`=`<string>`
-Specifies the location of the ipset(1) program and iptables(1), 
-ip6tables(1), or firewall-cmd(1) programs. By default, tallow will 
-look in "/usr/sbin" for them.
+Specifies the location of the ipset(1) program and iptables(1) or
+ip6tables(1) programs. By default, tallow will look in "/usr/sbin"
+for them.
 
 `expires`=`<int>`
 The number of seconds that IP addresses are blocked for. Note that
@@ -58,7 +62,7 @@ default, tallow will create new firewall-cmd(1) or iptables(1) and ip6tables(1)
 rules when needed automatically. If set to `1`, `tallow(1)` will not create any
 new firewall DROP rules or ipset sets that are needed work. You should create
 them manually before tallow starts up and remove them afterwards using the sets
-of commands below. 
+of commands below.
 
 Use the following commands if you're using iptables(1):
 

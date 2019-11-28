@@ -35,6 +35,7 @@
 #define MAX_OFFSETS 30
 
 static char ipt_path[PATH_MAX];
+static char fwcmd_path[PATH_MAX];
 static int expires = 3600;
 static int has_ipv6 = 0;
 static bool nocreate = false;
@@ -71,17 +72,17 @@ static void ext_ignore(char *fmt, ...)
 static void reset_rules(void)
 {
 	/* reset all rules in case the running fw changes */
-	ext_ignore("%s/firewall-cmd --permanent --direct --remove-rule ipv4 filter INPUT 1 -m set --match-set tallow src -j DROP 2> /dev/null", ipt_path);
-	ext_ignore("%s/firewall-cmd --permanent --delete-ipset=tallow 2> /dev/null", ipt_path);
+	ext_ignore("%s/firewall-cmd --permanent --direct --remove-rule ipv4 filter INPUT 1 -m set --match-set tallow src -j DROP 2> /dev/null", fwcmd_path);
+	ext_ignore("%s/firewall-cmd --permanent --delete-ipset=tallow 2> /dev/null", fwcmd_path);
 
 	/* delete iptables ref to set before the ipset! */
 	ext_ignore("%s/iptables -t filter -D INPUT -m set --match-set tallow src -j DROP 2> /dev/null", ipt_path);
 	ext_ignore("%s/ipset destroy tallow 2> /dev/null", ipt_path);
 
 	if (has_ipv6) {
-		ext_ignore("%s/firewall-cmd --permanent --direct --remove-rule ipv6 filter INPUT 1 -m set --match-set tallow6 src -j DROP 2> /dev/null", ipt_path);
-		ext_ignore("%s/firewall-cmd --permanent --delete-ipset=tallow6 2> /dev/null", ipt_path);
-		
+		ext_ignore("%s/firewall-cmd --permanent --direct --remove-rule ipv6 filter INPUT 1 -m set --match-set tallow6 src -j DROP 2> /dev/null", fwcmd_path);
+		ext_ignore("%s/firewall-cmd --permanent --delete-ipset=tallow6 2> /dev/null", fwcmd_path);
+
 		/* delete iptables ref to set before the ipset! */
 		ext_ignore("%s/ip6tables -t filter -D INPUT -m set --match-set tallow6 src -j DROP 2> /dev/null", ipt_path);
 		ext_ignore("%s/ipset destroy tallow6 2> /dev/null", ipt_path);
@@ -100,39 +101,39 @@ static void setup(void)
 
 	/* firewalld */
 	char *fwd_path;
-	if (asprintf(&fwd_path, "%s/firewall-cmd", ipt_path) < 0) {
+	if (asprintf(&fwd_path, "%s/firewall-cmd", fwcmd_path) < 0) {
 		exit(EXIT_FAILURE);
 	}
 
-	if ((access(fwd_path, X_OK) == 0) && ext("%s/firewall-cmd --state --quiet", ipt_path) == 0) {
+	if ((access(fwd_path, X_OK) == 0) && ext("%s/firewall-cmd --state --quiet", fwcmd_path) == 0) {
 		fprintf(stdout, "firewalld is running and will be used by tallow.\n");
 
 		reset_rules();
 
 		/* create ipv4 rule and ipset */
-		if (ext("%s/firewall-cmd --permanent --quiet --new-ipset=tallow --type=hash:ip --family=inet --option=timeout=%d", ipt_path, expires)) {
+		if (ext("%s/firewall-cmd --permanent --quiet --new-ipset=tallow --type=hash:ip --family=inet --option=timeout=%d", fwcmd_path, expires)) {
 			fprintf(stderr, "Unable to create ipv4 ipset with firewall-cmd.\n");
 			exit(EXIT_FAILURE);
 		}
-		if (ext("%s/firewall-cmd --permanent --direct --quiet --add-rule ipv4 filter INPUT 1 -m set --match-set tallow src -j DROP", ipt_path)) {
+		if (ext("%s/firewall-cmd --permanent --direct --quiet --add-rule ipv4 filter INPUT 1 -m set --match-set tallow src -j DROP", fwcmd_path)) {
 			fprintf(stderr, "Unable to create ipv4 firewalld rule.\n");
 			exit(EXIT_FAILURE);
 		}
 
 		/* create ipv6 rule and ipset */
 		if (has_ipv6) {
-			if (ext("%s/firewall-cmd --permanent --quiet --new-ipset=tallow6 --type=hash:ip --family=inet6 --option=timeout=%d", ipt_path, expires)) {
+			if (ext("%s/firewall-cmd --permanent --quiet --new-ipset=tallow6 --type=hash:ip --family=inet6 --option=timeout=%d", fwcmd_path, expires)) {
 				fprintf(stderr, "Unable to create ipv6 ipset with firewall-cmd.\n");
 				exit(EXIT_FAILURE);
 			}
-			if (ext("%s/firewall-cmd --permanent --direct --quiet --add-rule ipv6 filter INPUT 1 -m set --match-set tallow6 src -j DROP ", ipt_path)) {
+			if (ext("%s/firewall-cmd --permanent --direct --quiet --add-rule ipv6 filter INPUT 1 -m set --match-set tallow6 src -j DROP ", fwcmd_path)) {
 				fprintf(stderr, "Unable to create ipv6 firewalld rule.\n");
 				exit(EXIT_FAILURE);
 			}
 		}
 
 		/* reload firewalld for ipsets to load */
-		if (ext("%s/firewall-cmd --reload --quiet", ipt_path, expires)) {
+		if (ext("%s/firewall-cmd --reload --quiet", fwcmd_path, expires)) {
 			fprintf(stderr, "Unable to reload firewalld rules.\n");
 			exit(EXIT_FAILURE);
 		}
@@ -292,6 +293,7 @@ int main(void)
 	json_load_patterns();
 
 	strcpy(ipt_path, "/usr/sbin");
+	strcpy(fwcmd_path, "/usr/sbin");
 
 #ifdef DEBUG
 	fprintf(stderr, "Debug output enabled. Send SIGUSR1 to dump internal state table\n");
@@ -331,6 +333,8 @@ int main(void)
 			// todo: filter leading/trailing whitespace
 			if (!strcmp(key, "ipt_path"))
 				strncpy(ipt_path, val, PATH_MAX - 1);
+			if (!strcmp(key, "fwcmd_path"))
+				strncpy(fwcmd_path, val, PATH_MAX - 1);
 			if (!strcmp(key, "expires"))
 				expires = atoi(val);
 			if (!strcmp(key, "whitelist"))
