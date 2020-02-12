@@ -87,7 +87,7 @@ Use the following commands if you're using firewalld(1):
 
 ## SEE ALSO
 
-tallow(1)
+tallow(1), tallow.patterns(5)
 
 ## AUTHOR
 
