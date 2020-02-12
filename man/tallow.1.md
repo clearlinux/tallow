@@ -48,7 +48,7 @@ the `-DDEBUG=1` symbol passed to the compiler.
 
 ## SEE ALSO
 
-systemd-journald(1), iptables(1), ipset(1), tallow.conf(5)
+systemd-journald(1), iptables(1), ipset(1), tallow.conf(5), tallow.patterns(5)
 
 ## BUGS
 
