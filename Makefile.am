@@ -25,9 +25,10 @@ EXTRA_DIST = \
 	data/tallow.service.in \
 	data/sshd.json \
 	man/tallow.conf.5.md \
+	man/tallow.patterns.5.md \
 	man/tallow.1.md
 
-dist_man_MANS = man/tallow.1 man/tallow.conf.5
+dist_man_MANS = man/tallow.1 man/tallow.conf.5 man/tallow.patterns.5
 
 dist_doc_DATA = tallow.conf
 
@@ -40,3 +41,4 @@ man/%.5: man/%.5.md
 
 man/%.1: man/%.1.md
 	ronn -r $< --pipe > $@
+

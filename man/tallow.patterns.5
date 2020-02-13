@@ -1,0 +1,128 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "TALLOW" "5" "February 2020" "" ""
+.
+.SH "NAME"
+\fBtallow\fR
+.
+.SH "tallow\.patterns"
+Tallow pattern matching configuration files\.
+.
+.SH "SYNOPSIS"
+tallow(1) uses regular expressions to match journal entries and extract an IP address from them\. JSON files are used to configure the patterns and banning thresholds used by tallow(1)\.
+.
+.P
+\fB/etc/tallow/*\.json\fR \fB/usr/share/tallow/*\.json\fR
+.
+.SH "DESCRIPTION"
+tallow(1) uses regular expressions to match journal entries and extract an IP address from them\. JSON files are used to configure the patterns and banning thresholds used by tallow(1)\. This adds the ability to extend the patterns tallow(1) will recognize\. Many JSON files can exist for logical grouping\. The tallow(1) daemon will read all JSON files in the configuration directories at startup\.
+.
+.P
+tallow(1) operates with default pattern definitions in\fB/usr/share/tallow/*\.json\fR\. Users can add more patterns with their own JSON files under \fB/etc/tallow\fR\. The default JSON files can be overridden by creating the same file under \fB/etc/tallow\fR\.
+.
+.SH "FILE FORMAT"
+Pattern configuration files use the JavaScript Object Notation (JSON) format\.
+.
+.P
+The JSON must be two levels deep and all properties are required\. The root object is an array containing objects with a \fBfilter\fR key and an \fBitems\fR key\.
+.
+.IP "\(bu" 4
+\fBfilter\fR is a string that defines a field for filtering the journal file\. This helps make sure patterns are only matched to a subset of journal entries\. See systemd\.journal\-fields(7) for valid journal fields\.
+.
+.IP "\(bu" 4
+\fBitems\fR is an array of objects that contains three elements: \fBban\fR, \fBscore\fR, and \fBpattern\fR\.
+.
+.IP "\(bu" 4
+\fBban\fR is an integer that defines the number of seconds to ban originating IP for\. If this value is > 0, the IP address get banned immediately when a journal entry matches \fBpattern\fR\.
+.
+.IP "\(bu" 4
+\fBscore\fR is a double that defines a value to add to the accumulated "score" of an originating IP address each time a journal entry matches the \fBpattern\fR\. If the combined score is > 1\.0, tallow bans the originating IP for the default time of 1 hour\. The \fBban\fR element value above is not used for bans made due to \fBscore\fR\.
+.
+.IP "\(bu" 4
+\fBpattern\fR is a string that defines a Perl Compatible Regular Expressions (PCRE) to match against the filtered journal entries\. The PCRE should extract exactly one substring: the originating IP address for tallow(1)\. See systemd\.journal\-fields(7) for valid journal fields\.
+.
+.IP "" 0
+
+.
+.IP "" 0
+.
+.SH "EXAMPLES"
+.
+.IP "1." 4
+The JSON below is a snippet from one of the default pattern configuration files for blocking certain failed \fBsshd\fR connections\.
+.
+.IP
+The first pattern will ban an IP address after it fails to login 6 times causing it to reach a total score > 1\.0\.
+.
+.IP
+The second pattern will ban an IP address for 10 seconds every time a login is attempted with an invalid user\. Additionally, it will ban the IP address for 1 hour if it attempts to login with an invalid user 6 times causing it to reach a total score > 1\.0\.
+.
+.IP
+See the \fB/usr/share/tallow/sshd\.json\fR file for more \fBsshd\fR examples\.
+.
+.IP "" 4
+.
+.nf
+
+[
+  {
+    "filter": "SYSLOG_IDENTIFIER=sshd",
+    "items": [
+      {
+        "ban": 0,
+        "score": 0\.2,
+        "pattern": "MESSAGE=Failed \.* for \.* from ([0\-9a\-z:\.]+) port \e\ed+ ssh2"
+      },
+      {
+        "ban": 10,
+        "score": 0\.2,
+        "pattern": "MESSAGE=Invalid user \.* from ([0\-9a\-z:\.]+) port \e\ed+"
+      }
+    ]
+  }
+]
+.
+.fi
+.
+.IP "" 0
+
+.
+.IP "2." 4
+The JSON below defines a pattern for blocking connections based on error logs from \fBnginx\-mainline\fR if placed in a \fB/etc/tallow/nginx\-mainline\.json\fR file\.
+.
+.IP
+The pattern will ban an IP address for 15 seconds every time it attempts to access a script that does not exist\. Additionally, it will ban the IP address for 1 hour if it attempts to access invalid scripts 4 times causing it to reach a total score > 1\.0\.
+.
+.IP "" 4
+.
+.nf
+
+[
+  {
+    "filter": "SYSLOG_IDENTIFIER=nginx\-mainline",
+    "items": [
+      {
+        "ban": 15,
+        "score": 0\.3,
+        "pattern": "\.Primary script unknown\. while reading response header from upstream, client: ([0\-9a\-z:\.]+),"
+      }
+    ]
+  }
+]
+.
+.fi
+.
+.IP "" 0
+
+.
+.IP "" 0
+.
+.SH "SEE ALSO"
+tallow(1), tallow\.conf(5)
+.
+.SH "BUGS"
+\fBtallow\fR is \fBNOT A SECURITY SOLUTION\fR, nor does it protect against random password logins\. An attacker may still be able to logon to your systems if you allow password logins\.
+.
+.SH "AUTHOR"
+Auke Kok \fIauke\-jan\.h\.kok@intel\.com\fR
