@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "TALLOW" "1" "October 2018" "" ""
+.TH "TALLOW" "1" "February 2020" "" ""
 .
 .SH "NAME"
 \fBtallow\fR
@@ -31,7 +31,7 @@ The \fBtallow\fR daemon itself has no runtime configuration\. All configuration 
 The \fBUSR1\fR signal causes \fBtallow\fR to print out it\'s internal tracking table of IP addresses\. This requires that tallow is compiled with the \fB\-DDEBUG=1\fR symbol passed to the compiler\.
 .
 .SH "SEE ALSO"
-systemd\-journald(1), iptables(1), ipset(1), tallow\.conf(5)
+systemd\-journald(1), iptables(1), ipset(1), tallow\.conf(5), tallow\.patterns(5)
 .
 .SH "BUGS"
 \fBtallow\fR is \fBNOT A SECURITY SOLUTION\fR, nor does it protect against random password logins\. A attacker may still be able to logon to your systems if you allow password logins\.
