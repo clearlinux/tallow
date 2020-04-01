@@ -16,3 +16,4 @@ tallow-*/
 tallow.service
 *~
 DEADJOE
+man/*.[0-9]

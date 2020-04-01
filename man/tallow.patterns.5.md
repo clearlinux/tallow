@@ -1,9 +1,12 @@
-## tallow.patterns
+% TALLOW.PATTERNS(5)
+% Auke Kok `<auke-jan.h.kok@intel.com>`
+
+# tallow.patterns
 
 Tallow pattern matching configuration files.
 
 
-## SYNOPSIS
+# SYNOPSIS
 
 tallow(1) uses regular expressions to match journal entries and extract an IP
 address from them. JSON files are used to configure the patterns and banning
@@ -13,7 +16,7 @@ thresholds used by tallow(1).
 `/usr/share/tallow/*.json`
 
 
-## DESCRIPTION
+# DESCRIPTION
 
 tallow(1) uses regular expressions to match journal entries and extract an IP
 address from them. JSON files are used to configure the patterns and banning
@@ -28,12 +31,12 @@ files under `/etc/tallow`. The default JSON files can be overridden by creating
 the same file under `/etc/tallow`.
 
 
-## FILE FORMAT 
+# FILE FORMAT
 
 Pattern configuration files use the JavaScript Object Notation (JSON) format.
 
 The JSON must be two levels deep and all properties are required. The root
-object is an array containing objects with a `filter` key and an `items` key. 
+object is an array containing objects with a `filter` key and an `items` key.
 
 * `filter` is a string that defines a field for filtering the journal file.
   This helps make sure patterns are only matched to a subset of journal
@@ -50,7 +53,7 @@ object is an array containing objects with a `filter` key and an `items` key.
      of an originating IP address each time a journal entry matches
      the `pattern`. If the combined score is > 1.0, tallow bans the originating
      IP for the default time of 1 hour. The `ban` element value above is not
-     used for bans made due to `score`. 
+     used for bans made due to `score`.
 
    * `pattern` is a string that defines a Perl Compatible Regular Expressions
      (PCRE) to match against the filtered journal entries. The PCRE should
@@ -58,11 +61,10 @@ object is an array containing objects with a `filter` key and an `items` key.
      See systemd.journal-fields(7) for valid journal fields.
 
 
-
-## EXAMPLES
+# EXAMPLES
 
 1. The JSON below is a snippet from one of the default pattern configuration
-   files for blocking certain failed `sshd` connections. 
+   files for blocking certain failed `sshd` connections.
 
    The first pattern will ban an IP address after it fails to login 6 times
    causing it to reach a total score > 1.0.
@@ -119,16 +121,14 @@ object is an array containing objects with a `filter` key and an `items` key.
    ]
    ```
 
-## SEE ALSO
+
+# SEE ALSO
 
 tallow(1), tallow.conf(5)
 
-## BUGS
+
+# BUGS
 
 `tallow` is `NOT A SECURITY SOLUTION`, nor does it protect against random
 password logins. An attacker may still be able to logon to your systems if you
 allow password logins.
-
-## AUTHOR
-
-Auke Kok <auke-jan.h.kok@intel.com>

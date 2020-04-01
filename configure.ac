@@ -11,6 +11,11 @@ AC_CONFIG_FILES([Makefile])
 AC_PROG_CC
 AC_PROG_INSTALL
 
+AC_CHECK_PROG([PANDOC],[pandoc],yes)
+if test x"${PANDOC}" != x"yes" ; then
+    AC_MSG_ERROR([Pandoc is required to create manual pages.])
+fi
+
 PKG_CHECK_MODULES(PCRE, libpcre)
 PKG_CHECK_MODULES(JSON_C, json-c)
 PKG_CHECK_MODULES(LIBSYSTEMD, libsystemd,, [PKG_CHECK_MODULES(LIBSYSTEMD, libsystemd-journal)])

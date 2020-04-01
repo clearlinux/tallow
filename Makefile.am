@@ -28,17 +28,20 @@ EXTRA_DIST = \
 	man/tallow.patterns.5.md \
 	man/tallow.1.md
 
-dist_man_MANS = man/tallow.1 man/tallow.conf.5 man/tallow.patterns.5
-
 dist_doc_DATA = tallow.conf
 
 DISTCHECK_CONFIGURE_FLAGS = \
 	--with-systemdsystemunitdir=$(DESTDIR)$(SYSTEMDSYSTEMUNITDIR)
 
-docs: $(dist_man_MANS)
+man_MANS = man/tallow.1 man/tallow.conf.5 man/tallow.patterns.5
+clean-local:
+	rm -f $(man_MANS)
+
 man/%.5: man/%.5.md
-	ronn -r $< --pipe > $@
+	@mkdir -p $$(dirname $@)
+	pandoc -s -f markdown -t man $< --output $@
 
 man/%.1: man/%.1.md
-	ronn -r $< --pipe > $@
+	@mkdir -p $$(dirname $@)
+	pandoc -s -f markdown -t man $< --output $@
 
