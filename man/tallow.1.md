@@ -5,11 +5,11 @@
 
 Reduce log clutter due to ssh login attempts.
 
-# SYNOPSIS
+## SYNOPSIS
 
 `/usr/sbin/tallow`
 
-# DESCRIPTION
+## DESCRIPTION
 
 `tallow` is a daemon that watches the systemd journal for messages
 from the `sshd` service. It parses the messages and looks for
@@ -37,22 +37,22 @@ blocked inadvertently. You may wish to list any valid IP address
 with the whitelist option in tallow.conf(5). Multiple addresses can
 be whitelisted.
 
-# OPTIONS
+## OPTIONS
 
 The `tallow` daemon itself has no runtime configuration. All
 configuration is done through the tallow.conf(5) config file.
 
-# SIGNALS
+## SIGNALS
 
 The `USR1` signal causes `tallow` to print out it's internal tracking
 table of IP addresses. This requires that tallow is compiled with
 the `-DDEBUG=1` symbol passed to the compiler.
 
-# SEE ALSO
+## SEE ALSO
 
 systemd-journald(1), iptables(1), ipset(1), tallow.conf(5), tallow.patterns(5)
 
-# BUGS
+## BUGS
 
 `tallow` is `NOT A SECURITY SOLUTION`, nor does it protect against
 random password logins. A attacker may still be able to logon to your
