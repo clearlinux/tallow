@@ -5,21 +5,21 @@
 
 The tallow configuration file
 
-# NAME
+## NAME
 
 tallow.conf - Tallow daemon configuration file
 
-# SYNOPSIS
+## SYNOPSIS
 
 `/etc/tallow.conf`
 
-# DESCRIPTION
+## DESCRIPTION
 
 This file is read on startup by the tallow(1) daemon, and can
 be used to provide options to the tallow daemon. If not present,
 tallow will operate with built-in defaults.
 
-# OPTIONS
+## OPTIONS
 
 `fwcmd_path`=`<string>`
 Specifies the location of the ipset(1) firewall-cmd(1) programs. By
@@ -87,6 +87,6 @@ Use the following commands if you're using firewalld(1):
 
   ```
 
-# SEE ALSO
+## SEE ALSO
 
 tallow(1), tallow.patterns(5)
