@@ -146,7 +146,7 @@ static void setup(void)
 			fprintf(stderr, "Unable to create ipv4 ipset.\n");
 			exit(EXIT_FAILURE);
 		}
-		if (ext("%s/iptables -t filter -A INPUT -m set --match-set tallow src -j DROP", ipt_path)) {
+		if (ext("%s/iptables -t filter -I INPUT 1 -m set --match-set tallow src -j DROP", ipt_path)) {
 			fprintf(stderr, "Unable to create iptables rule.\n");
 			exit(EXIT_FAILURE);
 		}
@@ -157,7 +157,7 @@ static void setup(void)
 				fprintf(stderr, "Unable to create ipv6 ipset.\n");
 				exit(EXIT_FAILURE);
 			}
-			if (ext("%s/ip6tables -t filter -A INPUT -m set --match-set tallow6 src -j DROP", ipt_path)) {
+			if (ext("%s/ip6tables -t filter -I INPUT 1 -m set --match-set tallow6 src -j DROP", ipt_path)) {
 				fprintf(stderr, "Unable to create ipt6ables rule.\n");
 				exit(EXIT_FAILURE);
 			}
